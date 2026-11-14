@@ -38,6 +38,12 @@ Nao coloque senhas, URLs de conexao ou chaves no GitHub. Este esqueleto ainda na
 
 Para a Vercel, configure `backend/` como diretorio raiz do projeto Python; o runtime detecta a aplicacao `app` neste diretorio.
 
+## CORS e dominios
+
+Em desenvolvimento, a API aceita por padrao somente `http://localhost:5173` e `http://127.0.0.1:5173` (Vite). Em producao e na Vercel, defina `CORS_ORIGINS` nas variaveis de ambiente do projeto do backend, com uma lista separada por virgulas contendo as origens HTTPS reais do frontend, sem caminhos. Exemplo de formato: `https://<dominio-real-do-frontend>,https://<dominio-customizado>`. O aplicativo falha ao iniciar se essa variavel nao estiver definida em producao, rejeita wildcard e origens HTTP que nao sejam localhost.
+
+O CORS aceita credenciais de cookie, os metodos REST usuais, `Content-Type` e expoe `Retry-After` para o navegador. O frontend devera enviar requisicoes autenticadas com `credentials: "include"`. Configure apenas os dominios reais escolhidos na Vercel; nao inclua dominios dinamicos de preview nem use `*`. CORS nao substitui protecao CSRF. **Ainda nao use dados reais: a estrategia de backup e restauracao precisa ser definida e testada.**
+
 ## Autenticacao
 
 Os endpoints `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` e `GET /api/v1/auth/me` usam sessoes revogaveis. A senha e armazenada com Argon2id e o banco guarda somente o hash do token de sessao. O cadastro publico sempre cria perfil `user`.
@@ -60,4 +66,4 @@ Antes de executar a API, aplique as migracoes no banco de desenvolvimento com `a
 
 O comando exige que as migracoes ja tenham sido aplicadas, valida a mesma politica de senha do cadastro, cria a conta como `admin` ativa com hash Argon2id e recusa execucoes posteriores se ja houver qualquer administrador. Em PostgreSQL usa bloqueio transacional para impedir dois bootstraps concorrentes. Remova os segredos temporarios do ambiente assim que concluir. O comando nao e endpoint HTTP e nao executa migracoes automaticamente.
 
-CORS com dominios finais, configuracao de producao e um plano de backup/restauracao ainda estao pendentes. **Nao exponha os endpoints de autenticacao publicamente nem cadastre dados reais ate esses controles estarem concluidos.**
+Os dominios reais do frontend ainda precisam ser cadastrados em `CORS_ORIGINS` nas configuracoes da Vercel. Protecao CSRF e o plano de backup/restauracao tambem estao pendentes. **Nao cadastre dados reais ate essas etapas estarem concluidas.**
