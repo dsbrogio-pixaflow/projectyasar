@@ -73,3 +73,9 @@ Os dominios reais do frontend ainda precisam ser cadastrados em `CORS_ORIGINS` n
 Os endpoints `/api/v1/customers` exigem uma sessao ativa. `GET /customers` lista clientes ativos com paginação (`limit` ate 100, `offset`), busca opcional por nome/e-mail/telefone e opção `include_archived=true`. `POST /customers` cria; `GET /customers/{id}` consulta; `PUT /customers/{id}` substitui os campos editáveis; `POST /customers/{id}/archive` arquiva e `POST /customers/{id}/restore` restaura.
 
 Nome é obrigatório; e-mail, telefone, endereço e aniversário são opcionais. Aniversário armazena somente dia e mês, valida a combinação completa e permite 29/02. Cadastros são arquivados em vez de excluídos para preservar futuras referências históricas. A tabela já existe na migração `0001`; não é necessária nova migração para esta funcionalidade.
+
+## Produtos
+
+Os endpoints `/api/v1/products` também exigem sessão ativa. `GET /products` pesquisa pelo nome, pagina (`limit` até 100, `offset`) e omite arquivados por padrão; `include_archived=true` inclui o histórico. `POST /products` cria; `GET /products/{id}` consulta; `PUT /products/{id}` atualiza; `POST /products/{id}/archive` arquiva e `POST /products/{id}/restore` restaura.
+
+Preço atual usa `NUMERIC(12,2)`, deve ser não negativo e aceitar no máximo duas casas decimais. Imagem é apenas uma URL HTTP/HTTPS opcional; a API não busca nem armazena arquivos. Produtos são arquivados em vez de excluídos para preservar futuras referências de vendas. Estoque e movimentações serão implementados separadamente. A tabela já existe na migração `0001`; esta etapa não adiciona migração.

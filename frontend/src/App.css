@@ -637,6 +637,26 @@
   font-weight: 650;
 }
 
+.product-image-thumbnail {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fafafe;
+  object-fit: cover;
+}
+
+.product-image-placeholder {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px dashed #dedde8;
+  border-radius: 7px;
+  color: var(--muted);
+}
+
 .customer-secondary-text {
   display: block;
   margin-top: 4px;
