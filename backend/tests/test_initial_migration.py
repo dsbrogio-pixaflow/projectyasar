@@ -44,7 +44,13 @@ def test_initial_migration_creates_expected_tables(migrated_database: Path) -> N
     engine = create_engine(f"sqlite:///{migrated_database.as_posix()}")
     try:
         tables = set(inspect(engine).get_table_names())
-        assert {"users", "customers", "products", "alembic_version"} <= tables
+        assert {
+            "users",
+            "user_sessions",
+            "customers",
+            "products",
+            "alembic_version",
+        } <= tables
     finally:
         engine.dispose()
 
@@ -173,6 +179,11 @@ def test_migration_can_be_downgraded_and_reapplied(migrated_database: Path) -> N
 
     engine = create_engine(f"sqlite:///{migrated_database.as_posix()}")
     try:
-        assert {"users", "customers", "products"} <= set(inspect(engine).get_table_names())
+        assert {
+            "users",
+            "user_sessions",
+            "customers",
+            "products",
+        } <= set(inspect(engine).get_table_names())
     finally:
         engine.dispose()

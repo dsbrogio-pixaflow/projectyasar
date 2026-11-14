@@ -76,9 +76,10 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 
 - Cadastro publico recebe nome completo, e-mail e senha; perfil e estado nunca sao aceitos do formulario. Toda nova conta e criada como `user` e `active`, sem verificacao de e-mail.
 - A senha permanece conforme solicitado: minimo de seis caracteres e primeiro caractere maiusculo. A senha informada anteriormente para a conta inicial foi exposta e nao deve ser reutilizada.
-- Autenticacao e sessoes sao implementadas no FastAPI e PostgreSQL, sem Supabase Auth. Senhas sao armazenadas com hash dedicado para senhas (Argon2id ou bcrypt), nunca em texto puro. Rate limit e respostas de erro sem revelar se um e-mail existe protegem o login sem alterar a regra de senha escolhida.
+- Autenticacao e sessoes sao implementadas no FastAPI e PostgreSQL, sem Supabase Auth. Senhas sao armazenadas com Argon2id, nunca em texto puro; sessoes usam tokens aleatorios e o banco armazena somente o hash do token, com expiracao e revogacao.
 - A conta inicial de administrador sera provisionada uma unica vez por mecanismo seguro de bootstrap, usando `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD` como configuracoes de ambiente. A senha sera fornecida como segredo de ambiente, nao incorporada ao repositorio; depois do bootstrap, o segredo temporario deve ser removido/rotacionado.
 - Recomendacao de sessao web: cookies `Secure`, `HttpOnly` e `SameSite`, com expiracao e revogacao no servidor. A escolha final do mecanismo de sessao e detalhe tecnico a fechar na implementacao.
+- Antes da exposicao publica, implementar rate limiting persistente para cadastro/login e configurar CORS/origens e dominio HTTPS. O rate limiting nao pode depender apenas de memoria local, pois as funcoes Vercel podem executar em instancias distintas.
 
 ### Matriz de acesso
 
