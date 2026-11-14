@@ -17,7 +17,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -206,6 +206,13 @@ class InventoryMovement(Base):
             "reversal_of_id",
             unique=True,
         ),
+        Index(
+            "uq_inventory_movements_sale_item",
+            "source_id",
+            unique=True,
+            postgresql_where=text("source_type = 'sale' AND movement_type = 'out'"),
+            sqlite_where=text("source_type = 'sale' AND movement_type = 'out'"),
+        ),
         Index("ix_inventory_movements_created_by_user_id", "created_by_user_id"),
     )
 
@@ -234,3 +241,143 @@ class InventoryMovement(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+
+class DeliveryMethod(Base):
+    __tablename__ = "delivery_methods"
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(name)) > 0",
+            name="ck_delivery_methods_name_not_blank",
+        ),
+        Index(
+            "uq_delivery_methods_name_lower",
+            func.lower(text("name")),
+            unique=True,
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class Sale(Base):
+    __tablename__ = "sales"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('completed', 'cancelled')",
+            name="ck_sales_status",
+        ),
+        CheckConstraint(
+            """
+            (status = 'completed' AND cancelled_at IS NULL AND cancellation_reason IS NULL)
+            OR (status = 'cancelled' AND cancelled_at IS NOT NULL AND cancellation_reason IS NOT NULL)
+            """,
+            name="ck_sales_cancellation_state",
+        ),
+        Index("ix_sales_sold_at", "sold_at"),
+        Index("ix_sales_status", "status"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    customer_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("customers.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    customer_name_snapshot: Mapped[str] = mapped_column(String(200), nullable=False)
+    delivery_address_snapshot: Mapped[str | None] = mapped_column(Text)
+    delivery_method_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("delivery_methods.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    delivery_method_name_snapshot: Mapped[str] = mapped_column(String(120), nullable=False)
+    sold_at: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="completed")
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(17, 2), nullable=False)
+    cancellation_reason: Mapped[str | None] = mapped_column(String(500))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    cancelled_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    items: Mapped[list["SaleItem"]] = relationship(
+        back_populates="sale",
+        order_by="SaleItem.line_number",
+    )
+
+
+class SaleItem(Base):
+    __tablename__ = "sale_items"
+    __table_args__ = (
+        CheckConstraint(
+            "quantity BETWEEN 1 AND 1000",
+            name="ck_sale_items_quantity",
+        ),
+        CheckConstraint(
+            "line_number BETWEEN 1 AND 50",
+            name="ck_sale_items_line_number",
+        ),
+        Index(
+            "uq_sale_items_sale_product",
+            "sale_id",
+            "product_id",
+            unique=True,
+        ),
+        Index(
+            "uq_sale_items_sale_line",
+            "sale_id",
+            "line_number",
+            unique=True,
+        ),
+        Index("ix_sale_items_product_id", "product_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    sale_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("sales.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    product_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("products.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    line_number: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    product_name_snapshot: Mapped[str] = mapped_column(String(200), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    line_total: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    sale: Mapped["Sale"] = relationship(back_populates="items")

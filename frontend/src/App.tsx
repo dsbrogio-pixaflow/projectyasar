@@ -11,10 +11,11 @@ import type { User } from './services/auth'
 import CustomersPage from './CustomersPage'
 import ProductsPage from './ProductsPage'
 import InventoryPage from './InventoryPage'
+import SalesPage from './SalesPage'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
-type BusinessModule = 'customers' | 'products' | 'inventory' | null
+type BusinessModule = 'customers' | 'products' | 'inventory' | 'sales' | null
 type Notice = { kind: 'error' | 'success'; message: string }
 
 function getErrorMessage(error: unknown): string {
@@ -163,8 +164,8 @@ function App() {
                 {user.role === 'admin' ? 'Administrador' : 'Usuário'}
               </span>
               <p className="account-note">
-                Sua conta está conectada. Gerencie clientes, produtos e estoque
-                do seu negócio.
+                Sua conta está conectada. Gerencie clientes, produtos, estoque
+                e vendas do seu negócio.
               </p>
               <div className="account-actions">
                 <button
@@ -193,6 +194,15 @@ function App() {
                   ))}
                 >
                   {activeModule === 'inventory' ? 'Voltar ao resumo' : 'Gerenciar estoque'}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setActiveModule((module) => (
+                    module === 'sales' ? null : 'sales'
+                  ))}
+                >
+                  {activeModule === 'sales' ? 'Voltar ao resumo' : 'Gerenciar vendas'}
                 </button>
                 <button
                   className="secondary-button"
@@ -338,6 +348,7 @@ function App() {
         {user && activeModule === 'customers' && <CustomersPage />}
         {user && activeModule === 'products' && <ProductsPage />}
         {user && activeModule === 'inventory' && <InventoryPage />}
+        {user && activeModule === 'sales' && <SalesPage />}
       </section>
 
       <footer className="page-footer">
