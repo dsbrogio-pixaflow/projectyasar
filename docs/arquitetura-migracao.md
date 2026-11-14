@@ -80,7 +80,7 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 - A conta inicial de administrador e provisionada uma unica vez pelo comando operacional `backend/bootstrap_admin.py`, usando `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD` no ambiente. A senha nao e incorporada ao repositorio e os segredos temporarios devem ser removidos apos o bootstrap.
 - Sessoes web usam cookies `HttpOnly` e `SameSite=Lax`, com `Secure` em producao, expiracao e revogacao no servidor.
 - O cadastro limita 5 tentativas por IP por hora; o login limita 10 por e-mail e 20 por IP em 15 minutos. Contadores atomicos sao persistidos em `auth_rate_limits`, removidos apos expiracao e respondem com `429`/`Retry-After`. IPs e e-mails sao armazenados apenas como HMAC-SHA256 com chave de ambiente `RATE_LIMIT_HMAC_KEY` (minimo de 32 bytes). Em Vercel, usa-se o cabecalho `X-Forwarded-For` sobrescrito pela plataforma; localmente, o IP do cliente ASGI.
-- CORS/origens finais e dominio HTTPS ainda precisam ser configurados antes da exposicao publica. A chave HMAC deve ser estavel e igual em todas as instancias; sua rotacao invalida os buckets atuais.
+- O FastAPI aceita origens CORS explicitas por `CORS_ORIGINS`, exige origens HTTPS em producao/Vercel e falha ao iniciar se a lista estiver ausente; localmente permite somente as origens padrao do Vite. Os dominios de producao ainda devem ser definidos e configurados nos projetos Vercel quando forem criados. CORS permite credenciais e nao substitui protecao CSRF. A chave HMAC deve ser estavel e igual em todas as instancias; sua rotacao invalida os buckets atuais.
 
 ### Matriz de acesso
 

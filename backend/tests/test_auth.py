@@ -27,6 +27,7 @@ def auth_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", "test-rate-limit-key-that-is-at-least-32-bytes")
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
 
     config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
     command.upgrade(config, "head")
