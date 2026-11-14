@@ -1,7 +1,11 @@
 import os
+from collections.abc import Iterator
+from functools import lru_cache
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session as SQLAlchemySession
+from sqlalchemy.pool import NullPool
 
 
 def get_database_url(database_url: str | None = None) -> str:
@@ -16,5 +20,16 @@ def get_database_url(database_url: str | None = None) -> str:
     return url
 
 
+@lru_cache(maxsize=4)
+def _engine_for_url(url: str) -> Engine:
+    return create_engine(url, pool_pre_ping=True, poolclass=NullPool)
+
+
 def create_database_engine(database_url: str | None = None) -> Engine:
-    return create_engine(get_database_url(database_url), pool_pre_ping=True)
+    return _engine_for_url(get_database_url(database_url))
+
+
+def get_database_session() -> Iterator[SQLAlchemySession]:
+    engine = create_database_engine()
+    with SQLAlchemySession(engine) as session:
+        yield session

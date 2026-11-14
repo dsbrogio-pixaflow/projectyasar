@@ -37,3 +37,9 @@ Para gerar SQL PostgreSQL sem executar a migracao, configure uma URL PostgreSQL 
 Nao coloque senhas, URLs de conexao ou chaves no GitHub. Este esqueleto ainda nao conecta ao Supabase e nao deve receber dados reais. As migracoes podem ser testadas localmente com SQLite, mas devem tambem ser revisadas contra PostgreSQL antes de aplicar no ambiente remoto.
 
 Para a Vercel, configure `backend/` como diretorio raiz do projeto Python; o runtime detecta a aplicacao `app` neste diretorio.
+
+## Autenticacao
+
+Os endpoints `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` e `GET /api/v1/auth/me` usam sessoes revogaveis. A senha e armazenada com Argon2id e o banco guarda somente o hash do token de sessao. O cadastro publico sempre cria perfil `user`.
+
+O rate limiting persistente, CORS com dominios finais, provisionamento seguro do administrador inicial e configuracao de producao ainda nao estao implementados. **Nao exponha os endpoints de autenticacao publicamente nem cadastre dados reais ate esses controles e o plano de backup/restauracao estarem concluidos.**
