@@ -10,10 +10,11 @@ import {
 import type { User } from './services/auth'
 import CustomersPage from './CustomersPage'
 import ProductsPage from './ProductsPage'
+import InventoryPage from './InventoryPage'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
-type BusinessModule = 'customers' | 'products' | null
+type BusinessModule = 'customers' | 'products' | 'inventory' | null
 type Notice = { kind: 'error' | 'success'; message: string }
 
 function getErrorMessage(error: unknown): string {
@@ -162,8 +163,8 @@ function App() {
                 {user.role === 'admin' ? 'Administrador' : 'Usuário'}
               </span>
               <p className="account-note">
-                Sua conta está conectada. Comece organizando os cadastros de
-                clientes do seu negócio.
+                Sua conta está conectada. Gerencie clientes, produtos e estoque
+                do seu negócio.
               </p>
               <div className="account-actions">
                 <button
@@ -183,6 +184,15 @@ function App() {
                   ))}
                 >
                   {activeModule === 'products' ? 'Voltar ao resumo' : 'Gerenciar produtos'}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setActiveModule((module) => (
+                    module === 'inventory' ? null : 'inventory'
+                  ))}
+                >
+                  {activeModule === 'inventory' ? 'Voltar ao resumo' : 'Gerenciar estoque'}
                 </button>
                 <button
                   className="secondary-button"
@@ -327,6 +337,7 @@ function App() {
         </section>
         {user && activeModule === 'customers' && <CustomersPage />}
         {user && activeModule === 'products' && <ProductsPage />}
+        {user && activeModule === 'inventory' && <InventoryPage />}
       </section>
 
       <footer className="page-footer">

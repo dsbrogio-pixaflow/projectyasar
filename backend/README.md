@@ -78,4 +78,10 @@ Nome é obrigatório; e-mail, telefone, endereço e aniversário são opcionais.
 
 Os endpoints `/api/v1/products` também exigem sessão ativa. `GET /products` pesquisa pelo nome, pagina (`limit` até 100, `offset`) e omite arquivados por padrão; `include_archived=true` inclui o histórico. `POST /products` cria; `GET /products/{id}` consulta; `PUT /products/{id}` atualiza; `POST /products/{id}/archive` arquiva e `POST /products/{id}/restore` restaura.
 
-Preço atual usa `NUMERIC(12,2)`, deve ser não negativo e aceitar no máximo duas casas decimais. Imagem é apenas uma URL HTTP/HTTPS opcional; a API não busca nem armazena arquivos. Produtos são arquivados em vez de excluídos para preservar futuras referências de vendas. Estoque e movimentações serão implementados separadamente. A tabela já existe na migração `0001`; esta etapa não adiciona migração.
+Preço atual usa `NUMERIC(12,2)`, deve ser não negativo e aceitar no máximo duas casas decimais. Imagem é apenas uma URL HTTP/HTTPS opcional; a API não busca nem armazena arquivos. Produtos são arquivados em vez de excluídos para preservar futuras referências de vendas. A tabela já existe na migração `0001`.
+
+## Estoque
+
+Os endpoints autenticados `/api/v1/inventory/summary` e `/api/v1/inventory/movements` consultam saldos e histórico paginado. `POST /inventory/movements` registra entrada ou saída manual; quantidades devem ser positivas, mas uma saída pode deixar o saldo negativo para preservar o comportamento legado. A API e a interface sinalizam o saldo negativo sem bloquear o movimento. Produtos arquivados não aceitam novos movimentos.
+
+Movimentos são imutáveis. `POST /inventory/movements/{movement_id}/reverse` exige um motivo e cria um movimento compensatório; uma movimentação manual só pode ser revertida uma vez. Movimentos ligados a vendas devem ser corrigidos pelo futuro fluxo de cancelamento de vendas. A estrutura e os índices foram adicionados pela migração `0004_inventory_movements`; revise e aplique migracoes apenas em bancos locais/de teste nesta etapa.
