@@ -250,6 +250,33 @@ async def test_inventory_summary_paginates_and_filters_by_product_name(
 
 
 @pytest.mark.anyio
+async def test_inventory_summary_can_fetch_one_products_current_balance(
+    inventory_database: tuple[str, ASGITransport],
+) -> None:
+    _, transport = inventory_database
+    async with AsyncClient(transport=transport, base_url="https://testserver") as client:
+        await authenticate(client)
+        product_id = await create_product(client)
+        await client.post(
+            "/api/v1/inventory/movements",
+            json={
+                "product_id": product_id,
+                "occurred_at": "2026-11-14",
+                "movement_type": "in",
+                "quantity": 3,
+            },
+        )
+        response = await client.get(
+            "/api/v1/inventory/summary",
+            params={"product_id": product_id, "limit": 1},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["balance"] == 3
+
+
+@pytest.mark.anyio
 async def test_sale_movement_cannot_be_reversed_by_manual_endpoint(
     inventory_database: tuple[str, ASGITransport],
 ) -> None:

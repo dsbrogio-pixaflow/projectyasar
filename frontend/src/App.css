@@ -545,6 +545,12 @@
   line-height: 1.5;
 }
 
+.inventory-warning {
+  border: 1px solid #f0c77e;
+  color: #80551c;
+  background: #fff5e3;
+}
+
 .inventory-section {
   margin-top: 30px;
 }
