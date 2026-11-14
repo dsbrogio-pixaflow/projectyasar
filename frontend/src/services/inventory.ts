@@ -69,7 +69,7 @@ function queryString(options: InventoryListOptions): string {
 }
 
 export async function listProductStock(
-  options: Omit<InventoryListOptions, 'product_id'> = {},
+  options: InventoryListOptions = {},
 ): Promise<ProductStockPage> {
   const response = await apiRequest(`/inventory/summary${queryString(options)}`)
   return (await response.json()) as ProductStockPage

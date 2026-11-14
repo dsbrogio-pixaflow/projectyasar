@@ -82,6 +82,6 @@ Preço atual usa `NUMERIC(12,2)`, deve ser não negativo e aceitar no máximo du
 
 ## Estoque
 
-Os endpoints autenticados `/api/v1/inventory/summary` e `/api/v1/inventory/movements` consultam saldos e histórico paginado. `POST /inventory/movements` registra entrada ou saída manual; quantidades devem ser positivas, mas uma saída pode deixar o saldo negativo para preservar o comportamento legado. A API e a interface sinalizam o saldo negativo sem bloquear o movimento. Produtos arquivados não aceitam novos movimentos.
+Os endpoints autenticados `/api/v1/inventory/summary` e `/api/v1/inventory/movements` consultam saldos e histórico paginado. O resumo aceita `product_id` para consultar o saldo individual. `POST /inventory/movements` registra entrada ou saída manual; quantidades devem ser positivas, mas uma saída pode deixar o saldo negativo para preservar o comportamento legado. A API e a interface avisam antes e depois do lançamento sem bloquear a saída. Produtos arquivados não aceitam novos movimentos.
 
 Movimentos são imutáveis. `POST /inventory/movements/{movement_id}/reverse` exige um motivo e cria um movimento compensatório; uma movimentação manual só pode ser revertida uma vez. Movimentos ligados a vendas devem ser corrigidos pelo futuro fluxo de cancelamento de vendas. A estrutura e os índices foram adicionados pela migração `0004_inventory_movements`; revise e aplique migracoes apenas em bancos locais/de teste nesta etapa.

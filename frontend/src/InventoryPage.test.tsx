@@ -83,6 +83,13 @@ describe('inventory management', () => {
       .mockResolvedValueOnce(jsonResponse(stockPage()))
       .mockResolvedValueOnce(jsonResponse(movementPage()))
       .mockResolvedValueOnce(jsonResponse(productPage([product()])))
+      .mockResolvedValueOnce(jsonResponse(stockPage([{
+        product_id: 'product-1',
+        product_name: 'Camiseta Yasar',
+        total_entries: 0,
+        total_exits: 0,
+        balance: 0,
+      }])))
       .mockResolvedValueOnce(jsonResponse(result, 201))
       .mockResolvedValueOnce(jsonResponse(stockPage([
         {
@@ -102,12 +109,16 @@ describe('inventory management', () => {
     })
     await user.selectOptions(screen.getByLabelText('Tipo *'), 'out')
     await user.type(screen.getByLabelText('Quantidade *'), '2')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Esta saída deixará o saldo de Camiseta Yasar negativo (-2). A saída continua permitida.',
+    )
+    expect(screen.getByRole('button', { name: 'Registrar movimentação' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Registrar movimentação' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'Atenção: o saldo de Camiseta Yasar ficou negativo (-2).',
     )
-    const movementRequest = fetchMock.mock.calls[3]
+    const movementRequest = fetchMock.mock.calls[4]
     expect(movementRequest[0]).toBe('http://127.0.0.1:8000/api/v1/inventory/movements')
     expect(movementRequest[1]).toEqual(expect.objectContaining({
       method: 'POST',
@@ -150,6 +161,15 @@ describe('inventory management', () => {
       ])))
       .mockResolvedValueOnce(jsonResponse(movementPage([original])))
       .mockResolvedValueOnce(jsonResponse(productPage([product()])))
+      .mockResolvedValueOnce(jsonResponse(stockPage([
+        {
+          product_id: 'product-1',
+          product_name: 'Camiseta Yasar',
+          total_entries: 0,
+          total_exits: 2,
+          balance: -2,
+        },
+      ])))
       .mockResolvedValueOnce(jsonResponse(reversalResult))
       .mockResolvedValueOnce(jsonResponse(stockPage()))
       .mockResolvedValueOnce(jsonResponse(movementPage([reversed, {
@@ -166,7 +186,7 @@ describe('inventory management', () => {
 
     expect(await screen.findByText(/Movimentação revertida/)).toBeInTheDocument()
     expect(fetchMock).toHaveBeenNthCalledWith(
-      4,
+      5,
       'http://127.0.0.1:8000/api/v1/inventory/movements/movement-1/reverse',
       expect.objectContaining({
         method: 'POST',

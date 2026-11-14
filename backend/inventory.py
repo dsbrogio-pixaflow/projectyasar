@@ -181,6 +181,7 @@ def _movement_result(
 def list_product_stock(
     q: str | None = Query(default=None, max_length=200),
     include_archived: bool = False,
+    product_id: UUID | None = None,
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_database_session),
@@ -188,6 +189,8 @@ def list_product_stock(
     conditions = []
     if not include_archived:
         conditions.append(Product.archived_at.is_(None))
+    if product_id is not None:
+        conditions.append(Product.id == product_id)
     search = q.strip() if q is not None else ""
     if search:
         escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

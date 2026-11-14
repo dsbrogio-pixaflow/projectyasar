@@ -85,6 +85,10 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(true)
   const [stock, setStock] = useState<ProductStock[]>([])
+  const [selectedBalance, setSelectedBalance] = useState<{
+    productId: string
+    balance: number
+  } | null>(null)
   const [stockTotal, setStockTotal] = useState(0)
   const [movements, setMovements] = useState<InventoryMovement[]>([])
   const [movementTotal, setMovementTotal] = useState(0)
@@ -98,6 +102,7 @@ export default function InventoryPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [noticeIsWarning, setNoticeIsWarning] = useState(false)
   const queryKey = JSON.stringify([
     stockPage,
     movementPage,
@@ -185,6 +190,34 @@ export default function InventoryPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let isCurrent = true
+    if (!form.product_id) return () => {
+      isCurrent = false
+    }
+
+    listProductStock({
+      product_id: form.product_id,
+      include_archived: true,
+      limit: 1,
+    })
+      .then((result) => {
+        if (isCurrent) {
+          setSelectedBalance({
+            productId: form.product_id,
+            balance: result.items[0]?.balance ?? 0,
+          })
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (isCurrent) setError(getErrorMessage(requestError))
+      })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [form.product_id, refreshKey])
+
   function changeField(field: keyof MovementForm, value: string) {
     if (field === 'movement_type') {
       setForm((current) => ({
@@ -203,6 +236,7 @@ export default function InventoryPage() {
     event.preventDefault()
     setError(null)
     setNotice(null)
+    setNoticeIsWarning(false)
 
     const quantity = Number(form.quantity)
     if (!form.product_id || !form.occurred_at || !Number.isInteger(quantity) || quantity < 1) {
@@ -229,6 +263,7 @@ export default function InventoryPage() {
           ? `Movimentação registrada. Atenção: o saldo de ${result.movement.product_name} ficou negativo (${result.balance_after}).`
           : `Movimentação de ${result.movement.product_name} registrada. Saldo atual: ${result.balance_after}.`,
       )
+      setNoticeIsWarning(result.negative_balance_warning)
       setForm((current) => ({
         ...emptyForm(current.product_id),
         movement_type: current.movement_type,
@@ -255,6 +290,7 @@ export default function InventoryPage() {
 
     setError(null)
     setNotice(null)
+    setNoticeIsWarning(false)
     try {
       const result = await reverseInventoryMovement(movement.id, reason.trim())
       setNotice(
@@ -262,6 +298,7 @@ export default function InventoryPage() {
           ? `Movimentação revertida. Atenção: o saldo de ${result.movement.product_name} ficou negativo (${result.balance_after}).`
           : `Movimentação revertida. Saldo de ${result.movement.product_name}: ${result.balance_after}.`,
       )
+      setNoticeIsWarning(result.negative_balance_warning)
       setRefreshKey((key) => key + 1)
     } catch (requestError: unknown) {
       setError(getErrorMessage(requestError))
@@ -269,6 +306,15 @@ export default function InventoryPage() {
   }
 
   const activeProducts = products.filter((product) => !product.archived_at)
+  const projectedBalance = selectedBalance?.productId === form.product_id
+    ? selectedBalance.balance - Number(form.quantity)
+    : null
+  const willGoNegative = form.movement_type === 'out'
+    && Number.isInteger(Number(form.quantity))
+    && Number(form.quantity) > 0
+    && Number(form.quantity) <= 1_000_000
+    && projectedBalance !== null
+    && projectedBalance < 0
 
   return (
     <section className="customer-manager inventory-manager" aria-labelledby="inventory-heading">
@@ -281,7 +327,14 @@ export default function InventoryPage() {
       </div>
 
       {error && <p className="customer-message customer-error" role="alert">{error}</p>}
-      {notice && <p className="customer-message customer-success" role="status">{notice}</p>}
+      {notice && (
+        <p
+          className={`customer-message ${noticeIsWarning ? 'inventory-warning' : 'customer-success'}`}
+          role={noticeIsWarning ? 'alert' : 'status'}
+        >
+          {notice}
+        </p>
+      )}
 
       <form className="customer-form" onSubmit={handleSubmit}>
         <div className="customer-form-heading">
@@ -367,6 +420,13 @@ export default function InventoryPage() {
             {isSaving ? 'Salvando…' : 'Registrar movimentação'}
           </button>
         </div>
+        {willGoNegative && !isSaving && (
+          <p className="customer-message inventory-warning" role="alert">
+            Esta saída deixará o saldo de {activeProducts.find(
+              (product) => product.id === form.product_id,
+            )?.name ?? 'este produto'} negativo ({projectedBalance}). A saída continua permitida.
+          </p>
+        )}
         <p className="inventory-guidance">
           Saídas podem deixar o saldo negativo para preservar o comportamento do sistema legado.
           Saldos negativos são sinalizados; correções exigem reversão com motivo.
