@@ -8,6 +8,7 @@ import {
   register,
 } from './services/auth'
 import type { User } from './services/auth'
+import CustomersPage from './CustomersPage'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
@@ -40,6 +41,7 @@ function getErrorMessage(error: unknown): string {
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
+  const [isCustomerPanelOpen, setIsCustomerPanelOpen] = useState(false)
   const [mode, setMode] = useState<AuthMode>('login')
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -104,6 +106,7 @@ function App() {
     try {
       await logout()
       setUser(null)
+      setIsCustomerPanelOpen(false)
       setMode('login')
       setNotice({ kind: 'success', message: 'Você saiu da sua conta.' })
     } catch (error: unknown) {
@@ -157,17 +160,26 @@ function App() {
                 {user.role === 'admin' ? 'Administrador' : 'Usuário'}
               </span>
               <p className="account-note">
-                Sua conta está conectada. Os módulos de gestão serão
-                disponibilizados nas próximas etapas.
+                Sua conta está conectada. Comece organizando os cadastros de
+                clientes do seu negócio.
               </p>
-              <button
-                className="primary-button"
-                type="button"
-                onClick={handleLogout}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saindo…' : 'Sair da conta'}
-              </button>
+              <div className="account-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => setIsCustomerPanelOpen((isOpen) => !isOpen)}
+                >
+                  {isCustomerPanelOpen ? 'Voltar ao resumo' : 'Gerenciar clientes'}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Saindo…' : 'Sair da conta'}
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -300,6 +312,7 @@ function App() {
             </>
           )}
         </section>
+        {user && isCustomerPanelOpen && <CustomersPage />}
       </section>
 
       <footer className="page-footer">
