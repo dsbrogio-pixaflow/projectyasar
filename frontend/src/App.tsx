@@ -9,9 +9,11 @@ import {
 } from './services/auth'
 import type { User } from './services/auth'
 import CustomersPage from './CustomersPage'
+import ProductsPage from './ProductsPage'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
+type BusinessModule = 'customers' | 'products' | null
 type Notice = { kind: 'error' | 'success'; message: string }
 
 function getErrorMessage(error: unknown): string {
@@ -41,7 +43,7 @@ function getErrorMessage(error: unknown): string {
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
-  const [isCustomerPanelOpen, setIsCustomerPanelOpen] = useState(false)
+  const [activeModule, setActiveModule] = useState<BusinessModule>(null)
   const [mode, setMode] = useState<AuthMode>('login')
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -106,7 +108,7 @@ function App() {
     try {
       await logout()
       setUser(null)
-      setIsCustomerPanelOpen(false)
+      setActiveModule(null)
       setMode('login')
       setNotice({ kind: 'success', message: 'Você saiu da sua conta.' })
     } catch (error: unknown) {
@@ -167,9 +169,20 @@ function App() {
                 <button
                   className="primary-button"
                   type="button"
-                  onClick={() => setIsCustomerPanelOpen((isOpen) => !isOpen)}
+                  onClick={() => setActiveModule((module) => (
+                    module === 'customers' ? null : 'customers'
+                  ))}
                 >
-                  {isCustomerPanelOpen ? 'Voltar ao resumo' : 'Gerenciar clientes'}
+                  {activeModule === 'customers' ? 'Voltar ao resumo' : 'Gerenciar clientes'}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setActiveModule((module) => (
+                    module === 'products' ? null : 'products'
+                  ))}
+                >
+                  {activeModule === 'products' ? 'Voltar ao resumo' : 'Gerenciar produtos'}
                 </button>
                 <button
                   className="secondary-button"
@@ -312,7 +325,8 @@ function App() {
             </>
           )}
         </section>
-        {user && isCustomerPanelOpen && <CustomersPage />}
+        {user && activeModule === 'customers' && <CustomersPage />}
+        {user && activeModule === 'products' && <ProductsPage />}
       </section>
 
       <footer className="page-footer">

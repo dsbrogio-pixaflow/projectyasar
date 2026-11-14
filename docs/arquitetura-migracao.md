@@ -65,6 +65,7 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 
 - Chaves estrangeiras protegem relacionamentos. Valores monetarios usam `NUMERIC`, datas de negocio usam `DATE`/`TIMESTAMPTZ` e quantidades sao inteiros positivos.
 - Clientes autenticados podem ser pesquisados, criados, editados, arquivados e restaurados. A API pagina resultados e por padrao omite arquivados; a interface apresenta o aniversario como dia/mes, mantendo 29/02 valido sem ano de nascimento.
+- Produtos autenticados podem ser pesquisados, criados, editados, arquivados e restaurados; preco atual e `NUMERIC(12,2)` e imagem e uma referencia HTTP/HTTPS externa. Exclusao fisica e estoque/movimentacoes aguardam o modelo de vendas e trilha de auditoria.
 - Criar uma venda e as respectivas saidas de estoque deve ocorrer na mesma transacao. Estoque disponivel e calculado pelos movimentos.
 - Cancelar uma venda registra estado de cancelamento e movimento compensatorio; nao apaga a venda nem os movimentos originais.
 - Cliente ou produto sem historico pode ser excluido. Com historico, deve ser arquivado e permanecer referenciavel.
