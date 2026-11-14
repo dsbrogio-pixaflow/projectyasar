@@ -1,0 +1,27 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+/txt/
+
+# Java build output
+*.class
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Frontend
+node_modules/
+dist/
+
+# Deployment and local tooling
+.vercel/
+
+# OS and logs
+Thumbs.db
+.DS_Store
+*.log
