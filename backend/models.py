@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -163,4 +164,73 @@ class Product(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+
+class InventoryMovement(Base):
+    __tablename__ = "inventory_movements"
+    __table_args__ = (
+        CheckConstraint(
+            "movement_type IN ('in', 'out', 'reversal')",
+            name="ck_inventory_movements_type",
+        ),
+        CheckConstraint(
+            "quantity > 0",
+            name="ck_inventory_movements_quantity",
+        ),
+        CheckConstraint(
+            "source_type IN ('manual', 'sale')",
+            name="ck_inventory_movements_source_type",
+        ),
+        CheckConstraint(
+            """
+            (movement_type = 'reversal' AND reversal_of_id IS NOT NULL)
+            OR (movement_type != 'reversal' AND reversal_of_id IS NULL)
+            """,
+            name="ck_inventory_movements_reversal_reference",
+        ),
+        CheckConstraint(
+            """
+            (source_type = 'manual' AND source_id IS NULL)
+            OR (source_type = 'sale' AND source_id IS NOT NULL)
+            """,
+            name="ck_inventory_movements_source_reference",
+        ),
+        Index(
+            "ix_inventory_movements_product_date",
+            "product_id",
+            "occurred_at",
+        ),
+        Index(
+            "uq_inventory_movements_reversal_of",
+            "reversal_of_id",
+            unique=True,
+        ),
+        Index("ix_inventory_movements_created_by_user_id", "created_by_user_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    product_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("products.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    occurred_at: Mapped[date] = mapped_column(Date, nullable=False)
+    movement_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(16), nullable=False, default="manual")
+    source_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    reversal_of_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("inventory_movements.id", ondelete="RESTRICT"),
+    )
+    note: Mapped[str | None] = mapped_column(String(500))
+    created_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
