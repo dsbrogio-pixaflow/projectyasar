@@ -67,3 +67,9 @@ Antes de executar a API, aplique as migracoes no banco de desenvolvimento com `a
 O comando exige que as migracoes ja tenham sido aplicadas, valida a mesma politica de senha do cadastro, cria a conta como `admin` ativa com hash Argon2id e recusa execucoes posteriores se ja houver qualquer administrador. Em PostgreSQL usa bloqueio transacional para impedir dois bootstraps concorrentes. Remova os segredos temporarios do ambiente assim que concluir. O comando nao e endpoint HTTP e nao executa migracoes automaticamente.
 
 Os dominios reais do frontend ainda precisam ser cadastrados em `CORS_ORIGINS` nas configuracoes da Vercel. Protecao CSRF e o plano de backup/restauracao tambem estao pendentes. **Nao cadastre dados reais ate essas etapas estarem concluidas.**
+
+## Clientes
+
+Os endpoints `/api/v1/customers` exigem uma sessao ativa. `GET /customers` lista clientes ativos com paginação (`limit` ate 100, `offset`), busca opcional por nome/e-mail/telefone e opção `include_archived=true`. `POST /customers` cria; `GET /customers/{id}` consulta; `PUT /customers/{id}` substitui os campos editáveis; `POST /customers/{id}/archive` arquiva e `POST /customers/{id}/restore` restaura.
+
+Nome é obrigatório; e-mail, telefone, endereço e aniversário são opcionais. Aniversário armazena somente dia e mês, valida a combinação completa e permite 29/02. Cadastros são arquivados em vez de excluídos para preservar futuras referências históricas. A tabela já existe na migração `0001`; não é necessária nova migração para esta funcionalidade.

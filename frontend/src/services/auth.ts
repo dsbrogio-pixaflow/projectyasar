@@ -34,7 +34,7 @@ export class ApiError extends Error {
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 ).replace(/\/+$/, '')
-const AUTH_ENDPOINT = `${API_BASE_URL}/api/v1/auth`
+const API_ROOT = `${API_BASE_URL}/api/v1`
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -54,7 +54,7 @@ function getApiErrorMessage(payload: unknown): string | undefined {
   return undefined
 }
 
-async function send(
+export async function apiRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
@@ -63,7 +63,7 @@ async function send(
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${AUTH_ENDPOINT}${path}`, {
+  const response = await fetch(`${API_ROOT}${path}`, {
     ...init,
     headers,
     credentials: 'include',
@@ -84,7 +84,7 @@ async function send(
 }
 
 export async function register(details: RegistrationDetails): Promise<User> {
-  const response = await send('/register', {
+  const response = await apiRequest('/auth/register', {
     method: 'POST',
     body: JSON.stringify(details),
   })
@@ -92,7 +92,7 @@ export async function register(details: RegistrationDetails): Promise<User> {
 }
 
 export async function login(credentials: Credentials): Promise<User> {
-  const response = await send('/login', {
+  const response = await apiRequest('/auth/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
   })
@@ -100,10 +100,10 @@ export async function login(credentials: Credentials): Promise<User> {
 }
 
 export async function getCurrentUser(): Promise<User> {
-  const response = await send('/me')
+  const response = await apiRequest('/auth/me')
   return (await response.json()) as User
 }
 
 export async function logout(): Promise<void> {
-  await send('/logout', { method: 'POST' })
+  await apiRequest('/auth/logout', { method: 'POST' })
 }
