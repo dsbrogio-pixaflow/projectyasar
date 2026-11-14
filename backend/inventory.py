@@ -98,7 +98,7 @@ class ProductStockPage(BaseModel):
     offset: int
 
 
-def _lock_product(db: Session, product_id: UUID) -> Product:
+def lock_product_for_inventory(db: Session, product_id: UUID) -> Product:
     product = db.scalar(
         select(Product)
         .where(Product.id == product_id)
@@ -112,8 +112,8 @@ def _lock_product(db: Session, product_id: UUID) -> Product:
     return product
 
 
-def _lock_active_product(db: Session, product_id: UUID) -> Product:
-    product = _lock_product(db, product_id)
+def lock_active_product(db: Session, product_id: UUID) -> Product:
+    product = lock_product_for_inventory(db, product_id)
     if product.archived_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -122,7 +122,7 @@ def _lock_active_product(db: Session, product_id: UUID) -> Product:
     return product
 
 
-def _product_balance(db: Session, product_id: UUID) -> int:
+def product_balance(db: Session, product_id: UUID) -> int:
     movement = aliased(InventoryMovement)
     original = aliased(InventoryMovement)
     balance_change = case(
@@ -299,7 +299,7 @@ def create_movement(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_database_session),
 ) -> InventoryMovementResult:
-    product = _lock_active_product(db, payload.product_id)
+    product = lock_active_product(db, payload.product_id)
     movement = InventoryMovement(
         product_id=product.id,
         occurred_at=payload.occurred_at,
@@ -311,7 +311,7 @@ def create_movement(
     )
     db.add(movement)
     db.flush()
-    balance_after = _product_balance(db, product.id)
+    balance_after = product_balance(db, product.id)
     db.commit()
     db.refresh(movement)
     return _movement_result(movement, product, balance_after)
@@ -348,7 +348,7 @@ def reverse_movement(
             detail="Sale movements must be reversed through the sale cancellation flow",
         )
 
-    product = _lock_product(db, original.product_id)
+    product = lock_product_for_inventory(db, original.product_id)
     existing_reversal = db.scalar(
         select(InventoryMovement.id).where(
             InventoryMovement.reversal_of_id == original.id
@@ -372,7 +372,7 @@ def reverse_movement(
     )
     db.add(reversal)
     db.flush()
-    balance_after = _product_balance(db, product.id)
+    balance_after = product_balance(db, product.id)
     db.commit()
     db.refresh(reversal)
     return _movement_result(reversal, product, balance_after)

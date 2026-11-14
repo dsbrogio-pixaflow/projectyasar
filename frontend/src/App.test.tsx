@@ -184,6 +184,36 @@ describe('authentication experience', () => {
     )
   })
 
+  it('opens sales management from the authenticated account', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(currentUser, 200))
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], total: 0, limit: 100, offset: 0 }, 200),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], total: 0, limit: 100, offset: 0 }, 200),
+      )
+      .mockResolvedValueOnce(jsonResponse([], 200))
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], total: 0, limit: 20, offset: 0 }, 200),
+      )
+      .mockResolvedValueOnce(jsonResponse([], 200))
+    const user = userEvent.setup()
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Olá, Ana.' })
+    await user.click(screen.getByRole('button', { name: 'Gerenciar vendas' }))
+
+    expect(await screen.findByRole('heading', { name: 'Vendas' })).toBeInTheDocument()
+    expect(await screen.findByText('Ainda não há vendas concluídas.')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhuma venda registrada.')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'http://127.0.0.1:8000/api/v1/sales/summary',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
   it('shows the retry delay returned by the API rate limiter', async () => {
     const fetchMock = vi.mocked(fetch)
     fetchMock

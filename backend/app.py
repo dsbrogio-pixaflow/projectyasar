@@ -8,6 +8,7 @@ from auth import router as auth_router
 from customers import router as customers_router
 from inventory import router as inventory_router
 from products import router as products_router
+from sales import delivery_methods_router, sales_router
 
 LOCAL_CORS_ORIGINS = [
     "http://localhost:5173",
@@ -75,6 +76,8 @@ def create_app() -> FastAPI:
     application.include_router(customers_router, prefix="/api/v1")
     application.include_router(products_router, prefix="/api/v1")
     application.include_router(inventory_router, prefix="/api/v1")
+    application.include_router(sales_router, prefix="/api/v1")
+    application.include_router(delivery_methods_router, prefix="/api/v1")
 
     @application.get("/health", tags=["health"])
     async def health_check() -> dict[str, str]:

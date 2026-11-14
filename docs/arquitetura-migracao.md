@@ -1,6 +1,6 @@
 # Especificacao de arquitetura e migracao
 
-**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes e produtos ja foram integrados, e o controle de estoque esta em implementacao.
+**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque e vendas foram implementados em incrementos integrados. Entrega/rastreamento, despesas, calendario, painel e administracao ainda aguardam migracao.
 **Sistema legado analisado:** SY-Final, aplicacao Java Swing com persistencia em arquivos TXT.  
 **Escopo de dados:** os registros dos arquivos TXT sao dados de teste e nao serao importados. As configuracoes visuais e de e-mail serao tratadas separadamente; credenciais nao serao copiadas para o codigo, banco ou GitHub.
 
@@ -65,11 +65,11 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 
 - Chaves estrangeiras protegem relacionamentos. Valores monetarios usam `NUMERIC`, datas de negocio usam `DATE`/`TIMESTAMPTZ` e quantidades sao inteiros positivos.
 - Clientes autenticados podem ser pesquisados, criados, editados, arquivados e restaurados. A API pagina resultados e por padrao omite arquivados; a interface apresenta o aniversario como dia/mes, mantendo 29/02 valido sem ano de nascimento.
-- Produtos autenticados podem ser pesquisados, criados, editados, arquivados e restaurados; preco atual e `NUMERIC(12,2)` e imagem e uma referencia HTTP/HTTPS externa. Exclusao fisica e vendas ainda aguardam os respectivos modelos e fluxos; o livro de estoque auditavel ja esta implementado.
+- Produtos autenticados podem ser pesquisados, criados, editados, arquivados e restaurados; preco atual e `NUMERIC(12,2)` e imagem e uma referencia HTTP/HTTPS externa. Produtos referenciados por vendas nao podem ser excluidos; vendas preservam snapshots e precos aplicados.
 - O saldo de estoque e calculado pelos movimentos (`entradas - saidas`). Saidas manuais podem deixar o saldo negativo, preservando o comportamento do sistema Java; a interface deve sinalizar esse saldo sem bloquear o lancamento.
 - Movimentos manuais sao auditaveis e imutaveis. Corrigir um movimento manual cria uma reversao vinculada, com motivo obrigatorio, sem editar ou apagar o original; um movimento so pode ser revertido uma vez. Produtos arquivados nao aceitam novos movimentos, mas seus movimentos anteriores continuam consultaveis e podem ser revertidos.
-- Criar uma venda e as respectivas saidas de estoque deve ocorrer na mesma transacao. Estoque disponivel e calculado pelos movimentos.
-- Cancelar uma venda registra estado de cancelamento e movimento compensatorio; nao apaga a venda nem os movimentos originais. Movimentos originados por vendas nao podem ser revertidos pelo fluxo manual.
+- Criar uma venda com ate 50 itens e as respectivas saidas de estoque ocorre na mesma transacao. Estoque disponivel e calculado pelos movimentos; a venda e bloqueada se algum item nao tiver saldo suficiente.
+- Cancelar uma venda exige motivo, registra estado de cancelamento e movimentos compensatorios; nao apaga a venda nem os movimentos originais. Movimentos originados por vendas nao podem ser revertidos pelo fluxo manual. O resumo por produto considera somente vendas concluidas.
 - Cliente ou produto sem historico pode ser excluido. Com historico, deve ser arquivado e permanecer referenciavel.
 - A exclusao administrativa de usuario remove a conta, sessoes e referencias de autoria/auditoria associadas. Registros de negocio (vendas, despesas, estoque, entregas e eventos) sao preservados; referencias opcionais ao autor ficam nulas.
 - O ultimo administrador ativo nao pode ser desativado nem rebaixado. A verificacao deve ser feita no backend dentro de uma transacao.
@@ -118,7 +118,8 @@ Prefixo: `/api/v1`. JSON em UTF-8; erros seguem um formato consistente com codig
 | `/customers` | `user` ou `admin` | Listar, criar, consultar, editar, arquivar e excluir quando sem historico. |
 | `/products` | `user` ou `admin` | Listar, criar, consultar, editar, arquivar e excluir quando sem historico. |
 | `/inventory/summary` e `/inventory/movements` | `user` ou `admin` | Consultar saldos/historico paginado, registrar entradas e saidas manuais, sinalizar saldo negativo e corrigir movimentacoes manuais por reversao auditavel. |
-| `/sales` e `/sales/{sale_id}` | `user` ou `admin` | Criar venda com um ou mais itens, consultar e cancelar preservando historico. |
+| `/sales`, `/sales/{sale_id}`, `/sales/summary` e `/sales/{sale_id}/cancel` | `user` ou `admin` | Criar venda com um ou mais itens, consultar historico/resumo e cancelar preservando historico e compensando o estoque. |
+| `/delivery-methods` | `user` ou `admin` | Listar e cadastrar formas de entrega configuraveis. |
 | `/deliveries` e `/deliveries/{sale_id}` | `user` ou `admin` | Consultar/atualizar status e rastreio da entrega. |
 | `/expense-categories` e `/expenses` | `user` ou `admin` | Gerir categorias e lancamentos financeiros. |
 | `/calendar/events` | `user` ou `admin` | Gerir eventos manuais; aniversarios sao derivados de clientes. |
