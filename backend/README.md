@@ -42,4 +42,22 @@ Para a Vercel, configure `backend/` como diretorio raiz do projeto Python; o run
 
 Os endpoints `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` e `GET /api/v1/auth/me` usam sessoes revogaveis. A senha e armazenada com Argon2id e o banco guarda somente o hash do token de sessao. O cadastro publico sempre cria perfil `user`.
 
-O rate limiting persistente, CORS com dominios finais, provisionamento seguro do administrador inicial e configuracao de producao ainda nao estao implementados. **Nao exponha os endpoints de autenticacao publicamente nem cadastre dados reais ate esses controles e o plano de backup/restauracao estarem concluidos.**
+O cadastro permite 5 tentativas por IP por hora; o login permite 10 por e-mail e 20 por IP em 15 minutos. Os contadores sao atomicos e persistidos na tabela `auth_rate_limits`; IPs e e-mails sao convertidos em fingerprints HMAC, nunca gravados em texto puro. Tentativas excedentes retornam `429` e `Retry-After`. Em Vercel, a API usa o `X-Forwarded-For` fornecido pela plataforma, que sobrescreve esse cabecalho para evitar falsificacao; fora dela usa o endereco do cliente ASGI.
+
+Configure uma chave HMAC aleatoria de pelo menos 32 bytes, igual em todas as instancias da API, como `RATE_LIMIT_HMAC_KEY`. Exemplo local no PowerShell:
+
+```powershell
+$bytes = New-Object byte[] 32
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+$env:RATE_LIMIT_HMAC_KEY = [Convert]::ToBase64String($bytes)
+```
+
+Antes de executar a API, aplique as migracoes no banco de desenvolvimento com `alembic upgrade head`. Para provisionar o administrador inicial, defina `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD` no ambiente e execute:
+
+```powershell
+.\.venv\Scripts\python.exe .\bootstrap_admin.py
+```
+
+O comando exige que as migracoes ja tenham sido aplicadas, valida a mesma politica de senha do cadastro, cria a conta como `admin` ativa com hash Argon2id e recusa execucoes posteriores se ja houver qualquer administrador. Em PostgreSQL usa bloqueio transacional para impedir dois bootstraps concorrentes. Remova os segredos temporarios do ambiente assim que concluir. O comando nao e endpoint HTTP e nao executa migracoes automaticamente.
+
+CORS com dominios finais, configuracao de producao e um plano de backup/restauracao ainda estao pendentes. **Nao exponha os endpoints de autenticacao publicamente nem cadastre dados reais ate esses controles estarem concluidos.**
