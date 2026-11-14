@@ -19,6 +19,8 @@ O PostgreSQL sera gerenciado pelo Supabase. O unico projeto mantido e `projectya
 
 Vercel Functions suporta aplicacoes ASGI como FastAPI. O banco, o armazenamento persistente de imagens e o envio de e-mail continuam sendo servicos separados. A API deve usar conexoes PostgreSQL compatíveis com o modelo serverless e a regiao do banco deve ser escolhida considerando a regiao das funcoes.
 
+O repositorio GitHub `projectyasar` e privado. A tentativa de configurar branch protection foi recusada pelo GitHub no plano atual; a resposta indicou GitHub Pro ou repositorio publico. A visibilidade nao sera alterada sem autorizacao. Ate uma decisao sobre o plano, o fluxo sera operacional: branches de tarefa, PRs para `main`, revisao manual e sem commits diretos em `main`.
+
 ## 2. Diagrama de entidades
 
 ```mermaid
