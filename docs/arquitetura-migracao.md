@@ -77,9 +77,10 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 - Cadastro publico recebe nome completo, e-mail e senha; perfil e estado nunca sao aceitos do formulario. Toda nova conta e criada como `user` e `active`, sem verificacao de e-mail.
 - A senha permanece conforme solicitado: minimo de seis caracteres e primeiro caractere maiusculo. A senha informada anteriormente para a conta inicial foi exposta e nao deve ser reutilizada.
 - Autenticacao e sessoes sao implementadas no FastAPI e PostgreSQL, sem Supabase Auth. Senhas sao armazenadas com Argon2id, nunca em texto puro; sessoes usam tokens aleatorios e o banco armazena somente o hash do token, com expiracao e revogacao.
-- A conta inicial de administrador sera provisionada uma unica vez por mecanismo seguro de bootstrap, usando `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD` como configuracoes de ambiente. A senha sera fornecida como segredo de ambiente, nao incorporada ao repositorio; depois do bootstrap, o segredo temporario deve ser removido/rotacionado.
-- Recomendacao de sessao web: cookies `Secure`, `HttpOnly` e `SameSite`, com expiracao e revogacao no servidor. A escolha final do mecanismo de sessao e detalhe tecnico a fechar na implementacao.
-- Antes da exposicao publica, implementar rate limiting persistente para cadastro/login e configurar CORS/origens e dominio HTTPS. O rate limiting nao pode depender apenas de memoria local, pois as funcoes Vercel podem executar em instancias distintas.
+- A conta inicial de administrador e provisionada uma unica vez pelo comando operacional `backend/bootstrap_admin.py`, usando `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD` no ambiente. A senha nao e incorporada ao repositorio e os segredos temporarios devem ser removidos apos o bootstrap.
+- Sessoes web usam cookies `HttpOnly` e `SameSite=Lax`, com `Secure` em producao, expiracao e revogacao no servidor.
+- O cadastro limita 5 tentativas por IP por hora; o login limita 10 por e-mail e 20 por IP em 15 minutos. Contadores atomicos sao persistidos em `auth_rate_limits`, removidos apos expiracao e respondem com `429`/`Retry-After`. IPs e e-mails sao armazenados apenas como HMAC-SHA256 com chave de ambiente `RATE_LIMIT_HMAC_KEY` (minimo de 32 bytes). Em Vercel, usa-se o cabecalho `X-Forwarded-For` sobrescrito pela plataforma; localmente, o IP do cliente ASGI.
+- CORS/origens finais e dominio HTTPS ainda precisam ser configurados antes da exposicao publica. A chave HMAC deve ser estavel e igual em todas as instancias; sua rotacao invalida os buckets atuais.
 
 ### Matriz de acesso
 
