@@ -126,6 +126,7 @@ describe('authentication experience', () => {
 
     render(<App />)
     await screen.findByRole('heading', { name: 'Olá, Ana.' })
+    expect(screen.queryByRole('button', { name: 'Administrar usuários' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Gerenciar clientes' }))
 
     expect(await screen.findByRole('heading', { name: 'Clientes' })).toBeInTheDocument()
@@ -302,6 +303,47 @@ describe('authentication experience', () => {
     expect(fetchMock).toHaveBeenLastCalledWith(
       expect.stringMatching(/\/api\/v1\/calendar\?year=\d{4}&month=\d{1,2}$/),
       expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
+  it('closes the admin session after the current user loses access', async () => {
+    const fetchMock = vi.mocked(fetch)
+    const adminUser = {
+      ...currentUser,
+      role: 'admin' as const,
+      created_at: '2025-01-01T00:00:00Z',
+    }
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url.endsWith('/auth/me')) return jsonResponse(adminUser, 200)
+      if (url.includes('/admin/users?')) {
+        return jsonResponse({
+          items: [adminUser],
+          total: 1,
+          limit: 20,
+          offset: 0,
+        }, 200)
+      }
+      if (init?.method === 'PATCH') {
+        return jsonResponse({ ...adminUser, status: 'inactive' }, 200)
+      }
+      return jsonResponse({ detail: 'Not found' }, 404)
+    })
+    const user = userEvent.setup()
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Olá, Ana.' })
+    expect(screen.getByRole('button', { name: 'Administrar usuários' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Administrar usuários' }))
+    const row = await screen.findByRole('row', { name: /ana@example.com/ })
+    await user.click(within(row).getByRole('button', { name: 'Editar' }))
+    await user.selectOptions(screen.getByLabelText('Status *'), 'inactive')
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+
+    expect(await screen.findByRole('heading', { name: 'Acesse sua conta' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Seu perfil ou status foi alterado. Entre novamente para continuar.',
     )
   })
 

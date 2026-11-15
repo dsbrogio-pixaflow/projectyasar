@@ -1,6 +1,6 @@
 # Especificacao de arquitetura e migracao
 
-**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas, financeiro e painel foram integrados. O calendario esta em implementacao; administracao ainda aguarda migracao.
+**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas, financeiro, painel e calendario foram integrados. A administracao de usuarios esta em implementacao.
 **Sistema legado analisado:** SY-Final, aplicacao Java Swing com persistencia em arquivos TXT.  
 **Escopo de dados:** os registros dos arquivos TXT sao dados de teste e nao serao importados. As configuracoes visuais e de e-mail serao tratadas separadamente; credenciais nao serao copiadas para o codigo, banco ou GitHub.
 

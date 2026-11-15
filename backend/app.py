@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from admin_users import router as admin_users_router
 from auth import router as auth_router
 from calendar_api import router as calendar_router
 from customers import router as customers_router
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
         expose_headers=["Retry-After"],
     )
     application.include_router(auth_router, prefix="/api/v1")
+    application.include_router(admin_users_router, prefix="/api/v1")
     application.include_router(calendar_router, prefix="/api/v1")
     application.include_router(customers_router, prefix="/api/v1")
     application.include_router(products_router, prefix="/api/v1")

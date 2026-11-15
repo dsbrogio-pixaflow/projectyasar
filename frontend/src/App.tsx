@@ -16,6 +16,8 @@ import DeliveriesPage from './DeliveriesPage'
 import FinancePage from './FinancePage'
 import DashboardPage from './DashboardPage'
 import CalendarPage from './CalendarPage'
+import AdminUsersPage from './AdminUsersPage'
+import type { AdminUser } from './services/adminUsers'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
@@ -28,6 +30,7 @@ type BusinessModule =
   | 'finance'
   | 'dashboard'
   | 'calendar'
+  | 'admin-users'
   | null
 type Notice = { kind: 'error' | 'success'; message: string }
 
@@ -131,6 +134,31 @@ function App() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  function handleAdminUserUpdated(updatedUser: AdminUser, accessChanged: boolean) {
+    if (user?.id !== updatedUser.id) return
+    if (accessChanged) {
+      setUser(null)
+      setActiveModule(null)
+      setMode('login')
+      setNotice({
+        kind: 'success',
+        message: 'Seu perfil ou status foi alterado. Entre novamente para continuar.',
+      })
+      return
+    }
+    setUser(updatedUser)
+  }
+
+  function handleAdminUserDeleted() {
+    setUser(null)
+    setActiveModule(null)
+    setMode('login')
+    setNotice({
+      kind: 'success',
+      message: 'Sua conta foi excluída. Entre com outra conta, se disponível.',
+    })
   }
 
   return (
@@ -255,6 +283,19 @@ function App() {
                 >
                   {activeModule === 'calendar' ? 'Voltar ao resumo' : 'Abrir calendário'}
                 </button>
+                {user.role === 'admin' && (
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setActiveModule((module) => (
+                      module === 'admin-users' ? null : 'admin-users'
+                    ))}
+                  >
+                    {activeModule === 'admin-users'
+                      ? 'Voltar ao resumo'
+                      : 'Administrar usuários'}
+                  </button>
+                )}
                 <button
                   className="secondary-button"
                   type="button"
@@ -404,6 +445,13 @@ function App() {
         {user && activeModule === 'finance' && <FinancePage />}
         {user && activeModule === 'dashboard' && <DashboardPage />}
         {user && activeModule === 'calendar' && <CalendarPage />}
+        {user && activeModule === 'admin-users' && user.role === 'admin' && (
+          <AdminUsersPage
+            currentUserId={user.id}
+            onCurrentUserUpdated={handleAdminUserUpdated}
+            onCurrentUserDeleted={handleAdminUserDeleted}
+          />
+        )}
       </section>
 
       <footer className="page-footer">
