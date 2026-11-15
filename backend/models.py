@@ -331,6 +331,10 @@ class Sale(Base):
         back_populates="sale",
         order_by="SaleItem.line_number",
     )
+    delivery: Mapped["Delivery | None"] = relationship(
+        back_populates="sale",
+        uselist=False,
+    )
 
 
 class SaleItem(Base):
@@ -381,3 +385,43 @@ class SaleItem(Base):
         server_default=func.now(),
     )
     sale: Mapped["Sale"] = relationship(back_populates="items")
+
+
+class Delivery(Base):
+    __tablename__ = "deliveries"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'out_for_delivery', 'delivered', 'cancelled')",
+            name="ck_deliveries_status",
+        ),
+        CheckConstraint(
+            "tracking_code IS NULL OR length(trim(tracking_code)) > 0",
+            name="ck_deliveries_tracking_code_not_blank",
+        ),
+        Index("ix_deliveries_status", "status"),
+    )
+
+    sale_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("sales.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    delivery_address_snapshot: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
+    tracking_code: Mapped[str | None] = mapped_column(String(200))
+    updated_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+    sale: Mapped["Sale"] = relationship(back_populates="delivery")

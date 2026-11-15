@@ -214,6 +214,27 @@ describe('authentication experience', () => {
     )
   })
 
+  it('opens delivery tracking from the authenticated account', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(currentUser, 200))
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [], total: 0, limit: 20, offset: 0 }, 200),
+      )
+    const user = userEvent.setup()
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Olá, Ana.' })
+    await user.click(screen.getByRole('button', { name: 'Gerenciar entregas' }))
+
+    expect(await screen.findByRole('heading', { name: 'Entregas' })).toBeInTheDocument()
+    expect(await screen.findByText('Nenhuma entrega registrada.')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'http://127.0.0.1:8000/api/v1/deliveries?limit=20&offset=0',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
   it('shows the retry delay returned by the API rate limiter', async () => {
     const fetchMock = vi.mocked(fetch)
     fetchMock

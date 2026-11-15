@@ -14,6 +14,7 @@ from database import get_database_session
 from inventory import lock_active_product, lock_product_for_inventory, product_balance
 from models import (
     Customer,
+    Delivery,
     DeliveryMethod,
     InventoryMovement,
     Product,
@@ -320,6 +321,13 @@ def create_sale(
     )
     db.add(sale)
     db.flush()
+    db.add(
+        Delivery(
+            sale_id=sale.id,
+            delivery_address_snapshot=sale.delivery_address_snapshot,
+            status="pending",
+        )
+    )
 
     for sale_item in sale.items:
         db.add(
@@ -368,6 +376,25 @@ def cancel_sale(
             status_code=status.HTTP_409_CONFLICT,
             detail="Sale has already been cancelled",
         )
+
+    delivery = db.scalar(
+        select(Delivery)
+        .where(Delivery.sale_id == sale.id)
+        .with_for_update()
+    )
+    if delivery is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Sale delivery record is missing; cancellation was not applied",
+        )
+    if delivery.status in {"out_for_delivery", "delivered"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A sale cannot be cancelled after its delivery has left or completed",
+        )
+    if delivery.status == "pending":
+        delivery.status = "cancelled"
+        delivery.updated_by_user_id = user.id
 
     sale_items = list(
         db.scalars(

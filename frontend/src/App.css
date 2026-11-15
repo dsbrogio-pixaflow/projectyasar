@@ -730,6 +730,81 @@
   font-weight: 700;
 }
 
+.deliveries-guidance {
+  margin: 20px 0 0;
+  line-height: 1.5;
+}
+
+.deliveries-section {
+  margin-top: 24px;
+}
+
+.deliveries-section > .customer-list-heading {
+  flex-wrap: wrap;
+}
+
+.delivery-status-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.delivery-status-filter select,
+.delivery-status-select,
+.delivery-tracking-form input {
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #dedde8;
+  border-radius: 7px;
+  color: var(--ink);
+  background: white;
+  font: inherit;
+  font-size: 12px;
+}
+
+.delivery-status-select {
+  min-width: 150px;
+  font-weight: 650;
+}
+
+.delivery-status-select.is-pending {
+  color: #675b37;
+  background: #f7f3e8;
+}
+
+.delivery-status-select.is-out_for_delivery {
+  color: #80551c;
+  background: #fff3e3;
+}
+
+.delivery-status-select.is-delivered {
+  color: #26714e;
+  background: #ebf8f0;
+}
+
+.delivery-status-select.is-cancelled {
+  color: #983b42;
+  background: #fff0f0;
+}
+
+.delivery-tracking-form {
+  display: grid;
+  min-width: 160px;
+  gap: 7px;
+}
+
+.delivery-tracking-form input {
+  width: 100%;
+}
+
+.delivery-tracking-form .customer-secondary-button {
+  justify-self: start;
+}
+
 .customer-field input:focus,
 .customer-field textarea:focus,
 .customer-field select:focus,
