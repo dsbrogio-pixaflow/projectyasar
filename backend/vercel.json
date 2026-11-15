@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "schedules": {
+    "birthday-emails-daily": {
+      "schedule": "0 9 * * *",
+      "timezone": "America/Sao_Paulo",
+      "jitter": 1,
+      "path": "/api/v1/calendar/birthdays/send",
+      "requestMethod": "POST"
+    }
+  }
+}

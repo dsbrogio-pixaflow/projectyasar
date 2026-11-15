@@ -107,3 +107,11 @@ Os endpoints autenticados `/api/v1/expense-categories` listam e criam categorias
 ## Painel
 
 `GET /api/v1/dashboard` exige sessão ativa e retorna os 12 meses até o mês atual, com meses sem dados preenchidos com zero. O painel soma entradas e saídas mensais de estoque (incluindo os efeitos de reversões), unidades de vendas concluídas e despesas ainda registradas. Vendas e despesas canceladas não entram nos totais correspondentes. O saldo atual agregado considera produtos ativos e preserva valores negativos. O endpoint é somente leitura e não requer migração de banco.
+
+## Calendário e aniversários
+
+Os endpoints autenticados `GET /api/v1/calendar?year={year}&month={month}`, `POST /api/v1/calendar/events` e `DELETE /api/v1/calendar/events/{event_id}` consultam eventos e aniversários dos clientes ativos, criam eventos manuais e removem eventos individualmente. Aniversários são derivados dos clientes; 29/02 aparece em 01/03 nos anos não bissextos.
+
+O envio de felicitações usa `POST /api/v1/calendar/birthdays/send`, configurado em `backend/vercel.json` para execução diária às 09:00 em `America/Sao_Paulo`. Configure o diretório `backend/` como raiz do projeto Vercel da API e defina `CRON_SECRET` no ambiente; o alvo HTTP é público e rejeita chamadas sem `Authorization: Bearer <CRON_SECRET>`. O agendamento tem jitter (15 minutos no plano Hobby; 1 a 15 minutos em Pro/Enterprise) e não recebe retry automático da Vercel.
+
+Configure o serviço SMTP exclusivamente nas variáveis do backend: `SMTP_HOST`, `SMTP_PORT` (587 por padrão), `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `BIRTHDAY_EMAIL_SUBJECT` e `BIRTHDAY_EMAIL_BODY`. O envio usa STARTTLS. Logs guardam status, tentativas e classe do erro, e impedem reenvio dos e-mails já concluídos. Testes substituem SMTP por mock; não configure ou execute envios reais durante o desenvolvimento. A migração `0008_calendar` deve ser validada localmente; nenhum banco remoto foi alterado.
