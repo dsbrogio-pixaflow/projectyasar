@@ -19,14 +19,19 @@ Com o servidor ativo, abra `http://127.0.0.1:8000/health` ou `http://127.0.0.1:8
 
 ## Banco local e migracoes
 
-As migracoes exigem uma variavel `DATABASE_URL`. Para criar um banco SQLite de desenvolvimento:
+O backend carrega `DATABASE_URL` do arquivo local `backend/.env` sem sobrescrever variaveis ja definidas no processo. Esse arquivo e ignorado pelo Git; nao o envie nem compartilhe. Para criar um banco SQLite de desenvolvimento, configure:
+
+```dotenv
+DATABASE_URL=sqlite:///./dev.db
+```
+
+Entao, aplique as migracoes:
 
 ```powershell
-$env:DATABASE_URL = "sqlite:///./dev.db"
 .\.venv\Scripts\python.exe -m alembic upgrade head
 ```
 
-Para PostgreSQL, use a string de conexao do provedor em `DATABASE_URL`; URLs `postgres://` e `postgresql://` sao adaptadas para o driver psycopg 3 instalado pelo projeto.
+Para PostgreSQL, coloque em `DATABASE_URL` a URI fornecida pelo provedor; URLs `postgres://` e `postgresql://` sao adaptadas para o driver psycopg 3 instalado pelo projeto. Codifique caracteres reservados da senha na URI.
 
 Para gerar SQL PostgreSQL sem executar a migracao, configure uma URL PostgreSQL em `DATABASE_URL` e use:
 
@@ -34,7 +39,7 @@ Para gerar SQL PostgreSQL sem executar a migracao, configure uma URL PostgreSQL 
 .\.venv\Scripts\python.exe -m alembic upgrade head --sql
 ```
 
-Nao coloque senhas, URLs de conexao ou chaves no GitHub. Este esqueleto ainda nao conecta ao Supabase e nao deve receber dados reais. As migracoes podem ser testadas localmente com SQLite, mas devem tambem ser revisadas contra PostgreSQL antes de aplicar no ambiente remoto.
+Nao coloque senhas, URLs de conexao ou chaves no GitHub. O projeto nao deve receber dados reais ate a estrategia de backup e restauracao ser definida e testada. As migracoes podem ser testadas localmente com SQLite; antes de aplicar no ambiente remoto, revise a pre-visualizacao SQL gerada para PostgreSQL.
 
 Para a Vercel, configure `backend/` como diretorio raiz do projeto Python; o runtime detecta a aplicacao `app` neste diretorio. `backend/vercel.json` fixa a regiao das funcoes em `iad1`, proxima ao projeto Supabase atual em Virginia.
 
@@ -48,12 +53,7 @@ O CORS aceita credenciais de cookie, os metodos REST usuais, `Content-Type` e ex
 
 Os projetos `projectyasar-staging-frontend` e `projectyasar-staging-api` usam as raizes `frontend/` e `backend/` deste repositorio. O frontend encaminha chamadas ao dominio `projectyasar-staging-api.vercel.app`; o cliente usa `/api/v1` relativo em producao, preservando sessoes `HttpOnly`, `Secure` e `SameSite=Lax` no mesmo dominio.
 
-Cadastre segredos somente nas variaveis de ambiente do projeto da API na Vercel. Em **Production** e **Preview**, use em `DATABASE_URL` a URI **Transaction pooler** copiada em Supabase > Connect; o runtime desativa prepared statements do Psycopg, que nao sao suportados nesse modo. Mantenha `sslmode=require` na URI. Para executar Alembic, cadastre temporariamente em **Development** uma URI **Direct connection** e rode o comando abaixo; remova essa variavel depois da migracao. Essa separacao evita usar o transaction pooler em migracoes, para as quais o Supabase recomenda conexao direta.
-
-```powershell
-Set-Location "C:\curso java\SY-Final\backend"
-npm exec --yes --package=vercel@latest -- vercel env run --environment development --project projectyasar-staging-api --scope pixaflow -- .\.venv\Scripts\python.exe -m alembic upgrade head
-```
+Cadastre segredos somente nas variaveis de ambiente do projeto da API na Vercel. Em **Production** e **Preview**, use em `DATABASE_URL` a URI **Transaction pooler** copiada em Supabase > Connect; o runtime desativa prepared statements do Psycopg, que nao sao suportados nesse modo. Mantenha `sslmode=require` na URI. Para executar Alembic localmente, mantenha a URI fora do Git em `backend/.env`; prefira **Direct connection** e, se sua rede nao alcancar IPv6, use o **Session pooler** (porta 5432). Nao use o Transaction pooler para migracoes. O arquivo `.env` local nao configura automaticamente as variaveis do deploy Vercel.
 
 A API tambem precisa de `RATE_LIMIT_HMAC_KEY` (chave aleatoria estavel, com pelo menos 32 bytes) e `CORS_ORIGINS` (origem HTTPS do frontend). Nao configure `CRON_SECRET` ou variaveis SMTP no staging: a rota agendada rejeitara a chamada antes de consultar o banco ou enviar e-mails. O bootstrap de administrador e executado uma unica vez por operador, fora da Vercel, somente depois de aprovada e isolada a base de staging; nao mantenha as credenciais de bootstrap nas variaveis do deploy.
 
