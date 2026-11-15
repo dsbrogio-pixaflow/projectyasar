@@ -48,7 +48,14 @@ O CORS aceita credenciais de cookie, os metodos REST usuais, `Content-Type` e ex
 
 Os projetos `projectyasar-staging-frontend` e `projectyasar-staging-api` usam as raizes `frontend/` e `backend/` deste repositorio. O frontend encaminha chamadas ao dominio `projectyasar-staging-api.vercel.app`; o cliente usa `/api/v1` relativo em producao, preservando sessoes `HttpOnly`, `Secure` e `SameSite=Lax` no mesmo dominio.
 
-Cadastre segredos somente nas variaveis de ambiente do projeto da API na Vercel. A API precisa de `DATABASE_URL`, `RATE_LIMIT_HMAC_KEY` (chave aleatoria estavel, com pelo menos 32 bytes) e `CORS_ORIGINS` (origem HTTPS do frontend). Nao configure `CRON_SECRET` ou variaveis SMTP no staging: a rota agendada rejeitara a chamada antes de consultar o banco ou enviar e-mails. O bootstrap de administrador e executado uma unica vez por operador, fora da Vercel, somente depois de aprovada e isolada a base de staging; nao mantenha as credenciais de bootstrap nas variaveis do deploy.
+Cadastre segredos somente nas variaveis de ambiente do projeto da API na Vercel. Em **Production** e **Preview**, use em `DATABASE_URL` a URI **Transaction pooler** copiada em Supabase > Connect; o runtime desativa prepared statements do Psycopg, que nao sao suportados nesse modo. Mantenha `sslmode=require` na URI. Para executar Alembic, cadastre temporariamente em **Development** uma URI **Direct connection** e rode o comando abaixo; remova essa variavel depois da migracao. Essa separacao evita usar o transaction pooler em migracoes, para as quais o Supabase recomenda conexao direta.
+
+```powershell
+Set-Location "C:\curso java\SY-Final\backend"
+npm exec --yes --package=vercel@latest -- vercel env run --environment development --project projectyasar-staging-api --scope pixaflow -- .\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+A API tambem precisa de `RATE_LIMIT_HMAC_KEY` (chave aleatoria estavel, com pelo menos 32 bytes) e `CORS_ORIGINS` (origem HTTPS do frontend). Nao configure `CRON_SECRET` ou variaveis SMTP no staging: a rota agendada rejeitara a chamada antes de consultar o banco ou enviar e-mails. O bootstrap de administrador e executado uma unica vez por operador, fora da Vercel, somente depois de aprovada e isolada a base de staging; nao mantenha as credenciais de bootstrap nas variaveis do deploy.
 
 Antes de conectar o staging ao PostgreSQL, confirme que a base e isolada da base de qualquer ambiente com dados existentes. Nao execute migracoes nem bootstrap em uma base compartilhada ou sem backup/restauracao verificados. Use somente dados ficticios; a Issue #5 continua pendente e nao ha autorizacao para uso de dados reais.
 
