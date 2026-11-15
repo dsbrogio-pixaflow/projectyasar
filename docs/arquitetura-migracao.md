@@ -1,6 +1,6 @@
 # Especificacao de arquitetura e migracao
 
-**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas e financeiro foram implementados em incrementos integrados. Calendario, painel e administracao ainda aguardam migracao.
+**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas e financeiro foram implementados em incrementos integrados. O painel esta em implementacao; calendario e administracao ainda aguardam migracao.
 **Sistema legado analisado:** SY-Final, aplicacao Java Swing com persistencia em arquivos TXT.  
 **Escopo de dados:** os registros dos arquivos TXT sao dados de teste e nao serao importados. As configuracoes visuais e de e-mail serao tratadas separadamente; credenciais nao serao copiadas para o codigo, banco ou GitHub.
 
@@ -72,6 +72,7 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 - Cancelar uma venda exige motivo, registra estado de cancelamento e movimentos compensatorios; nao apaga a venda nem os movimentos originais. Movimentos originados por vendas nao podem ser revertidos pelo fluxo manual. O resumo por produto considera somente vendas concluidas.
 - Toda venda tem uma entrega, criada como `pending` na mesma transacao. Status podem ser alterados diretamente entre os valores permitidos, como no legado; entrega cancelada nao cancela a venda, mas venda cancelada nao permite reabrir sua entrega.
 - Despesas exigem valor maior que zero com no maximo duas casas decimais e categoria existente; categorias nao se repetem sem diferenciar maiusculas/minusculas. Cancelar uma despesa exige motivo, preserva o registro e impede um segundo cancelamento. O resumo financeiro inclui somente vendas concluidas e despesas ainda registradas.
+- O painel retorna os 12 meses ate o mes atual, inclusive periodos sem dados; mostra quantidades de entrada/saida de estoque (incluindo os efeitos de reversoes), unidades vendidas em vendas concluidas e despesas nao canceladas. O saldo agregado atual considera produtos ativos e pode ser negativo.
 - Cliente ou produto sem historico pode ser excluido. Com historico, deve ser arquivado e permanecer referenciavel.
 - A exclusao administrativa de usuario remove a conta, sessoes e referencias de autoria/auditoria associadas. Registros de negocio (vendas, despesas, estoque, entregas e eventos) sao preservados; referencias opcionais ao autor ficam nulas.
 - O ultimo administrador ativo nao pode ser desativado nem rebaixado. A verificacao deve ser feita no backend dentro de uma transacao.
@@ -125,7 +126,7 @@ Prefixo: `/api/v1`. JSON em UTF-8; erros seguem um formato consistente com codig
 | `/deliveries`, `/deliveries/{sale_id}` | `user` ou `admin` | Listar, buscar, filtrar e atualizar status/codigo de rastreio da entrega associada a uma venda. |
 | `/expense-categories`, `/expenses` e `/financial/summary` | `user` ou `admin` | Gerir categorias e lancamentos financeiros auditaveis e consultar totais de vendas concluidas, despesas ativas e resultado liquido. |
 | `/calendar/events` | `user` ou `admin` | Gerir eventos manuais; aniversarios sao derivados de clientes. |
-| `/dashboard` | `user` ou `admin` | Retornar indicadores de vendas, estoque e financeiro. |
+| `/dashboard` | `user` ou `admin` | Retornar series mensais de estoque, unidades vendidas e despesas ativas para os 12 meses ate o atual, mais o saldo agregado atual do estoque ativo. |
 
 O contrato detalhado de campos, codigos de erro e validacoes sera refinado junto com as telas e publicado no OpenAPI do FastAPI. Criacao de venda deve validar todos os itens e estoque e gravar venda, itens e movimentos em uma unica transacao.
 
