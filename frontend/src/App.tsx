@@ -12,10 +12,11 @@ import CustomersPage from './CustomersPage'
 import ProductsPage from './ProductsPage'
 import InventoryPage from './InventoryPage'
 import SalesPage from './SalesPage'
+import DeliveriesPage from './DeliveriesPage'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
-type BusinessModule = 'customers' | 'products' | 'inventory' | 'sales' | null
+type BusinessModule = 'customers' | 'products' | 'inventory' | 'sales' | 'deliveries' | null
 type Notice = { kind: 'error' | 'success'; message: string }
 
 function getErrorMessage(error: unknown): string {
@@ -135,7 +136,7 @@ function App() {
           <p className="eyebrow">GESTÃO DO SEU NEGÓCIO</p>
           <h1>Mais clareza para cuidar do que você construiu.</h1>
           <p className="intro-copy">
-            Clientes, produtos e vendas em um só lugar. Entre para continuar
+            Clientes, produtos, vendas e entregas em um só lugar. Entre para continuar
             organizando o seu dia.
           </p>
           <ul className="feature-list" aria-label="Recursos do sistema">
@@ -164,8 +165,8 @@ function App() {
                 {user.role === 'admin' ? 'Administrador' : 'Usuário'}
               </span>
               <p className="account-note">
-                Sua conta está conectada. Gerencie clientes, produtos, estoque
-                e vendas do seu negócio.
+                Sua conta está conectada. Gerencie clientes, produtos, estoque,
+                vendas e entregas do seu negócio.
               </p>
               <div className="account-actions">
                 <button
@@ -203,6 +204,15 @@ function App() {
                   ))}
                 >
                   {activeModule === 'sales' ? 'Voltar ao resumo' : 'Gerenciar vendas'}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setActiveModule((module) => (
+                    module === 'deliveries' ? null : 'deliveries'
+                  ))}
+                >
+                  {activeModule === 'deliveries' ? 'Voltar ao resumo' : 'Gerenciar entregas'}
                 </button>
                 <button
                   className="secondary-button"
@@ -349,6 +359,7 @@ function App() {
         {user && activeModule === 'products' && <ProductsPage />}
         {user && activeModule === 'inventory' && <InventoryPage />}
         {user && activeModule === 'sales' && <SalesPage />}
+        {user && activeModule === 'deliveries' && <DeliveriesPage />}
       </section>
 
       <footer className="page-footer">

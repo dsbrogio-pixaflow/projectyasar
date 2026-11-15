@@ -1,6 +1,6 @@
 # Especificacao de arquitetura e migracao
 
-**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque e vendas foram implementados em incrementos integrados. Entrega/rastreamento, despesas, calendario, painel e administracao ainda aguardam migracao.
+**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas e acompanhamento de entregas foram implementados em incrementos integrados. Despesas, calendario, painel e administracao ainda aguardam migracao.
 **Sistema legado analisado:** SY-Final, aplicacao Java Swing com persistencia em arquivos TXT.  
 **Escopo de dados:** os registros dos arquivos TXT sao dados de teste e nao serao importados. As configuracoes visuais e de e-mail serao tratadas separadamente; credenciais nao serao copiadas para o codigo, banco ou GitHub.
 
@@ -55,7 +55,7 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 | `sales` | Cliente, data/hora, estado, forma de entrega e snapshots do nome/endereco relevantes ao historico. Vendas confirmadas nao sao apagadas para corrigir o estoque. |
 | `sale_items` | Venda, produto, quantidade positiva, preco unitario aplicado (`NUMERIC`) e total calculado. O preco praticado fica preservado mesmo quando o preco atual do produto muda. |
 | `inventory_movements` | Produto, data, tipo (`in`, `out`, `reversal`), quantidade positiva, origem e autoria opcional. Saidas manuais podem deixar o saldo negativo, que deve ser sinalizado. Correcoes sao novos movimentos imutaveis de reversao com motivo; saidas de venda sao corrigidas pelo fluxo de cancelamento. |
-| `deliveries` | Uma entrega no maximo por venda; status, codigo de rastreio e snapshot do endereco usado. Status inicial `pending`; cancelamento de entrega nao cancela a venda automaticamente. |
+| `deliveries` | Uma entrega por venda, inclusive retirada/entrega pessoal; status (`pending`, `out_for_delivery`, `delivered`, `cancelled`), codigo de rastreio opcional e snapshot do endereco. Cancelar entrega nao cancela a venda automaticamente. Cancelar venda cancela entrega pendente na mesma transacao e e bloqueado apos despacho/conclusao. |
 | `expense_categories` | Categorias configuraveis de lancamentos financeiros. |
 | `expenses` | Data, categoria, valor positivo (`NUMERIC`), descricao opcional e autoria. Preserva a interpretacao observada no Java: lancamentos financeiros sao despesas/pagamentos. |
 | `calendar_events` | Eventos manuais com data, descricao, tipo e autoria opcional. Aniversarios nao sao copiados para esta tabela. |
@@ -70,6 +70,7 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 - Movimentos manuais sao auditaveis e imutaveis. Corrigir um movimento manual cria uma reversao vinculada, com motivo obrigatorio, sem editar ou apagar o original; um movimento so pode ser revertido uma vez. Produtos arquivados nao aceitam novos movimentos, mas seus movimentos anteriores continuam consultaveis e podem ser revertidos.
 - Criar uma venda com ate 50 itens e as respectivas saidas de estoque ocorre na mesma transacao. Estoque disponivel e calculado pelos movimentos; a venda e bloqueada se algum item nao tiver saldo suficiente.
 - Cancelar uma venda exige motivo, registra estado de cancelamento e movimentos compensatorios; nao apaga a venda nem os movimentos originais. Movimentos originados por vendas nao podem ser revertidos pelo fluxo manual. O resumo por produto considera somente vendas concluidas.
+- Toda venda tem uma entrega, criada como `pending` na mesma transacao. Status podem ser alterados diretamente entre os valores permitidos, como no legado; entrega cancelada nao cancela a venda, mas venda cancelada nao permite reabrir sua entrega.
 - Cliente ou produto sem historico pode ser excluido. Com historico, deve ser arquivado e permanecer referenciavel.
 - A exclusao administrativa de usuario remove a conta, sessoes e referencias de autoria/auditoria associadas. Registros de negocio (vendas, despesas, estoque, entregas e eventos) sao preservados; referencias opcionais ao autor ficam nulas.
 - O ultimo administrador ativo nao pode ser desativado nem rebaixado. A verificacao deve ser feita no backend dentro de uma transacao.
@@ -120,7 +121,7 @@ Prefixo: `/api/v1`. JSON em UTF-8; erros seguem um formato consistente com codig
 | `/inventory/summary` e `/inventory/movements` | `user` ou `admin` | Consultar saldos/historico paginado, registrar entradas e saidas manuais, sinalizar saldo negativo e corrigir movimentacoes manuais por reversao auditavel. |
 | `/sales`, `/sales/{sale_id}`, `/sales/summary` e `/sales/{sale_id}/cancel` | `user` ou `admin` | Criar venda com um ou mais itens, consultar historico/resumo e cancelar preservando historico e compensando o estoque. |
 | `/delivery-methods` | `user` ou `admin` | Listar e cadastrar formas de entrega configuraveis. |
-| `/deliveries` e `/deliveries/{sale_id}` | `user` ou `admin` | Consultar/atualizar status e rastreio da entrega. |
+| `/deliveries`, `/deliveries/{sale_id}` | `user` ou `admin` | Listar, buscar, filtrar e atualizar status/codigo de rastreio da entrega associada a uma venda. |
 | `/expense-categories` e `/expenses` | `user` ou `admin` | Gerir categorias e lancamentos financeiros. |
 | `/calendar/events` | `user` ou `admin` | Gerir eventos manuais; aniversarios sao derivados de clientes. |
 | `/dashboard` | `user` ou `admin` | Retornar indicadores de vendas, estoque e financeiro. |

@@ -238,6 +238,7 @@ async def test_cancellation_restores_stock_and_cannot_be_repeated_or_manually_re
             f"/api/v1/sales/{sale_id}/cancel",
             json={"reason": "Pedido cancelado pelo cliente"},
         )
+        delivery = await client.get(f"/api/v1/deliveries/{sale_id}")
         duplicate_cancel = await client.post(
             f"/api/v1/sales/{sale_id}/cancel",
             json={"reason": "Tentativa duplicada"},
@@ -263,11 +264,87 @@ async def test_cancellation_restores_stock_and_cannot_be_repeated_or_manually_re
     assert cancel.status_code == 200
     assert cancel.json()["status"] == "cancelled"
     assert cancel.json()["cancellation_reason"] == "Pedido cancelado pelo cliente"
+    assert delivery.status_code == 200
+    assert delivery.json()["status"] == "cancelled"
     assert duplicate_cancel.status_code == 409
     assert inventory.json()["items"][0]["balance"] == 5
     assert summary.json() == []
     assert movements.json()["total"] == 3
     assert manual_reverse.status_code == 409
+
+
+@pytest.mark.parametrize("delivery_status", ["out_for_delivery", "delivered"])
+@pytest.mark.anyio
+async def test_sale_cannot_be_cancelled_after_delivery_leaves_or_completes(
+    sales_database: ASGITransport,
+    delivery_status: str,
+) -> None:
+    async with AsyncClient(transport=sales_database, base_url="https://testserver") as client:
+        await authenticate(client)
+        customer_id = await create_customer(client)
+        product_id = await create_product(client, "Shipped Product")
+        await add_stock(client, product_id, 5)
+        delivery_methods = await client.get("/api/v1/delivery-methods")
+        delivery_method_id = delivery_methods.json()[0]["id"]
+        sale = await create_sale(
+            client,
+            customer_id,
+            delivery_method_id,
+            [{"product_id": product_id, "quantity": 2, "unit_price": "10.00"}],
+        )
+        sale_id = sale.json()["id"]
+        delivery = await client.patch(
+            f"/api/v1/deliveries/{sale_id}",
+            json={"status": delivery_status},
+        )
+        cancel = await client.post(
+            f"/api/v1/sales/{sale_id}/cancel",
+            json={"reason": "Pedido cancelado pelo cliente"},
+        )
+        saved_sale = await client.get(f"/api/v1/sales/{sale_id}")
+        inventory = await client.get(
+            "/api/v1/inventory/summary",
+            params={"product_id": product_id},
+        )
+
+    assert delivery.status_code == 200
+    assert cancel.status_code == 409
+    assert "cannot be cancelled" in cancel.json()["detail"]
+    assert saved_sale.json()["status"] == "completed"
+    assert inventory.json()["items"][0]["balance"] == 3
+
+
+@pytest.mark.anyio
+async def test_sale_can_be_cancelled_if_delivery_was_cancelled_independently(
+    sales_database: ASGITransport,
+) -> None:
+    async with AsyncClient(transport=sales_database, base_url="https://testserver") as client:
+        await authenticate(client)
+        customer_id = await create_customer(client)
+        product_id = await create_product(client, "Cancelled Delivery Product")
+        await add_stock(client, product_id, 2)
+        delivery_methods = await client.get("/api/v1/delivery-methods")
+        delivery_method_id = delivery_methods.json()[0]["id"]
+        sale = await create_sale(
+            client,
+            customer_id,
+            delivery_method_id,
+            [{"product_id": product_id, "quantity": 1, "unit_price": "10.00"}],
+        )
+        sale_id = sale.json()["id"]
+        delivery = await client.patch(
+            f"/api/v1/deliveries/{sale_id}",
+            json={"status": "cancelled"},
+        )
+        cancel = await client.post(
+            f"/api/v1/sales/{sale_id}/cancel",
+            json={"reason": "Pedido cancelado pelo cliente"},
+        )
+        saved_delivery = await client.get(f"/api/v1/deliveries/{sale_id}")
+
+    assert delivery.status_code == 200
+    assert cancel.status_code == 200
+    assert saved_delivery.json()["status"] == "cancelled"
 
 
 @pytest.mark.anyio
