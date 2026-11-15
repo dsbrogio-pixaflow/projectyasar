@@ -805,6 +805,88 @@
   justify-self: start;
 }
 
+.finance-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.finance-summary article {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.finance-summary article > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.finance-summary article > strong {
+  color: var(--ink);
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.finance-summary .finance-negative {
+  color: #a14850;
+}
+
+.finance-category-form {
+  display: grid;
+  gap: 7px;
+  margin: 20px 0;
+}
+
+.finance-category-form > label,
+.finance-status-filter {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.finance-category-form > div {
+  display: flex;
+  gap: 8px;
+}
+
+.finance-category-form input,
+.finance-status-filter select {
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #dedde8;
+  border-radius: 7px;
+  color: var(--ink);
+  background: white;
+  font: inherit;
+  font-size: 13px;
+}
+
+.finance-category-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.finance-status-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.finance-expenses {
+  margin-top: 30px;
+}
+
+.finance-expenses > .customer-list-heading {
+  flex-wrap: wrap;
+}
+
 .customer-field input:focus,
 .customer-field textarea:focus,
 .customer-field select:focus,
@@ -1076,6 +1158,10 @@
     padding: 24px 18px;
   }
 
+  .finance-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .sales-line {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1143,6 +1229,20 @@
   .customer-search {
     width: 100%;
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .finance-category-form > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .finance-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-status-filter {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .sales-delivery-create > div {
