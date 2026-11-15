@@ -425,3 +425,86 @@ class Delivery(Base):
         onupdate=func.now(),
     )
     sale: Mapped["Sale"] = relationship(back_populates="delivery")
+
+
+class ExpenseCategory(Base):
+    __tablename__ = "expense_categories"
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(name)) > 0",
+            name="ck_expense_categories_name_not_blank",
+        ),
+        Index(
+            "uq_expense_categories_name_lower",
+            func.lower(text("name")),
+            unique=True,
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    created_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class Expense(Base):
+    __tablename__ = "expenses"
+    __table_args__ = (
+        CheckConstraint(
+            "amount > 0",
+            name="ck_expenses_amount_positive",
+        ),
+        CheckConstraint(
+            "status IN ('posted', 'cancelled')",
+            name="ck_expenses_status",
+        ),
+        CheckConstraint(
+            """
+            (status = 'posted' AND cancelled_at IS NULL AND cancellation_reason IS NULL)
+            OR (status = 'cancelled' AND cancelled_at IS NOT NULL AND cancellation_reason IS NOT NULL)
+            """,
+            name="ck_expenses_cancellation_state",
+        ),
+        Index("ix_expenses_expense_date", "expense_date"),
+        Index("ix_expenses_category_id", "category_id"),
+        Index("ix_expenses_status", "status"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    category_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("expense_categories.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    category_name_snapshot: Mapped[str] = mapped_column(String(120), nullable=False)
+    expense_date: Mapped[date] = mapped_column(Date, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="posted")
+    cancellation_reason: Mapped[str | None] = mapped_column(String(500))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    cancelled_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )

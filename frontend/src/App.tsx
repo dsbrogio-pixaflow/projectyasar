@@ -13,10 +13,18 @@ import ProductsPage from './ProductsPage'
 import InventoryPage from './InventoryPage'
 import SalesPage from './SalesPage'
 import DeliveriesPage from './DeliveriesPage'
+import FinancePage from './FinancePage'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
-type BusinessModule = 'customers' | 'products' | 'inventory' | 'sales' | 'deliveries' | null
+type BusinessModule =
+  | 'customers'
+  | 'products'
+  | 'inventory'
+  | 'sales'
+  | 'deliveries'
+  | 'finance'
+  | null
 type Notice = { kind: 'error' | 'success'; message: string }
 
 function getErrorMessage(error: unknown): string {
@@ -142,7 +150,7 @@ function App() {
           <ul className="feature-list" aria-label="Recursos do sistema">
             <li><span aria-hidden="true">01</span> Clientes e aniversários</li>
             <li><span aria-hidden="true">02</span> Produtos e estoque</li>
-            <li><span aria-hidden="true">03</span> Vendas e entregas</li>
+            <li><span aria-hidden="true">03</span> Vendas, entregas e financeiro</li>
           </ul>
           <div className="decorative-orbit" aria-hidden="true">
             <span />
@@ -166,7 +174,7 @@ function App() {
               </span>
               <p className="account-note">
                 Sua conta está conectada. Gerencie clientes, produtos, estoque,
-                vendas e entregas do seu negócio.
+                vendas, entregas e financeiro do seu negócio.
               </p>
               <div className="account-actions">
                 <button
@@ -213,6 +221,15 @@ function App() {
                   ))}
                 >
                   {activeModule === 'deliveries' ? 'Voltar ao resumo' : 'Gerenciar entregas'}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setActiveModule((module) => (
+                    module === 'finance' ? null : 'finance'
+                  ))}
+                >
+                  {activeModule === 'finance' ? 'Voltar ao resumo' : 'Gerenciar financeiro'}
                 </button>
                 <button
                   className="secondary-button"
@@ -360,6 +377,7 @@ function App() {
         {user && activeModule === 'inventory' && <InventoryPage />}
         {user && activeModule === 'sales' && <SalesPage />}
         {user && activeModule === 'deliveries' && <DeliveriesPage />}
+        {user && activeModule === 'finance' && <FinancePage />}
       </section>
 
       <footer className="page-footer">
