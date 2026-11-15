@@ -15,6 +15,7 @@ import SalesPage from './SalesPage'
 import DeliveriesPage from './DeliveriesPage'
 import FinancePage from './FinancePage'
 import DashboardPage from './DashboardPage'
+import CalendarPage from './CalendarPage'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
@@ -26,6 +27,7 @@ type BusinessModule =
   | 'deliveries'
   | 'finance'
   | 'dashboard'
+  | 'calendar'
   | null
 type Notice = { kind: 'error' | 'success'; message: string }
 
@@ -154,6 +156,7 @@ function App() {
             <li><span aria-hidden="true">02</span> Produtos e estoque</li>
             <li><span aria-hidden="true">03</span> Vendas, entregas e financeiro</li>
             <li><span aria-hidden="true">04</span> Painel de indicadores</li>
+            <li><span aria-hidden="true">05</span> Calendário e aniversários</li>
           </ul>
           <div className="decorative-orbit" aria-hidden="true">
             <span />
@@ -177,7 +180,7 @@ function App() {
               </span>
               <p className="account-note">
                 Sua conta está conectada. Gerencie clientes, produtos, estoque,
-                vendas, entregas, financeiro e indicadores do seu negócio.
+                vendas, entregas, financeiro, calendário e indicadores do seu negócio.
               </p>
               <div className="account-actions">
                 <button
@@ -242,6 +245,15 @@ function App() {
                   ))}
                 >
                   {activeModule === 'finance' ? 'Voltar ao resumo' : 'Gerenciar financeiro'}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setActiveModule((module) => (
+                    module === 'calendar' ? null : 'calendar'
+                  ))}
+                >
+                  {activeModule === 'calendar' ? 'Voltar ao resumo' : 'Abrir calendário'}
                 </button>
                 <button
                   className="secondary-button"
@@ -391,6 +403,7 @@ function App() {
         {user && activeModule === 'deliveries' && <DeliveriesPage />}
         {user && activeModule === 'finance' && <FinancePage />}
         {user && activeModule === 'dashboard' && <DashboardPage />}
+        {user && activeModule === 'calendar' && <CalendarPage />}
       </section>
 
       <footer className="page-footer">

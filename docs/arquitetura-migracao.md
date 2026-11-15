@@ -1,6 +1,6 @@
 # Especificacao de arquitetura e migracao
 
-**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas e financeiro foram implementados em incrementos integrados. O painel esta em implementacao; calendario e administracao ainda aguardam migracao.
+**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas, financeiro e painel foram integrados. O calendario esta em implementacao; administracao ainda aguarda migracao.
 **Sistema legado analisado:** SY-Final, aplicacao Java Swing com persistencia em arquivos TXT.  
 **Escopo de dados:** os registros dos arquivos TXT sao dados de teste e nao serao importados. As configuracoes visuais e de e-mail serao tratadas separadamente; credenciais nao serao copiadas para o codigo, banco ou GitHub.
 
@@ -125,7 +125,9 @@ Prefixo: `/api/v1`. JSON em UTF-8; erros seguem um formato consistente com codig
 | `/delivery-methods` | `user` ou `admin` | Listar e cadastrar formas de entrega configuraveis. |
 | `/deliveries`, `/deliveries/{sale_id}` | `user` ou `admin` | Listar, buscar, filtrar e atualizar status/codigo de rastreio da entrega associada a uma venda. |
 | `/expense-categories`, `/expenses` e `/financial/summary` | `user` ou `admin` | Gerir categorias e lancamentos financeiros auditaveis e consultar totais de vendas concluidas, despesas ativas e resultado liquido. |
-| `/calendar/events` | `user` ou `admin` | Gerir eventos manuais; aniversarios sao derivados de clientes. |
+| `GET /calendar?year={year}&month={month}` | `user` ou `admin` | Consultar eventos e aniversarios dos clientes ativos no mes. |
+| `POST /calendar/events`, `DELETE /calendar/events/{event_id}` | `user` ou `admin` | Criar e remover eventos manuais individualmente. |
+| `POST /calendar/birthdays/send` | `CRON_SECRET` | Enviar e registrar as felicitacoes do dia; chamada automatizada pelo agendamento Vercel. |
 | `/dashboard` | `user` ou `admin` | Retornar series mensais de estoque, unidades vendidas e despesas ativas para os 12 meses ate o atual, mais o saldo agregado atual do estoque ativo. |
 
 O contrato detalhado de campos, codigos de erro e validacoes sera refinado junto com as telas e publicado no OpenAPI do FastAPI. Criacao de venda deve validar todos os itens e estoque e gravar venda, itens e movimentos em uma unica transacao.
@@ -134,11 +136,13 @@ O contrato detalhado de campos, codigos de erro e validacoes sera refinado junto
 
 - Aniversario e armazenado apenas por dia e mes no cliente.
 - Um agendamento diario tenta executar as felicitações as 09:00 em `America/Sao_Paulo`; envia para clientes ativos com e-mail valido e aniversario do dia.
-- Para 29/02, enviar em 29 de fevereiro quando o ano for bissexto; nos demais anos, em 28 de fevereiro.
+- Para 29/02, exibir/enviar em 29 de fevereiro quando o ano for bissexto; nos demais anos, em 01 de marco.
 - O envio deve ser idempotente por cliente/ano; falhas sao registradas e podem ser reprocessadas sem duplicar envios concluidos.
-- SMTP e credenciais ficam em variaveis de ambiente do projeto backend. Nao migrar a senha contida no arquivo TXT; rotacionar qualquer credencial ja compartilhada.
-- Vercel Schedules oferece fuso IANA, adequado para `America/Sao_Paulo`. A precisao/jitter do horario depende do plano; no plano Hobby a documentacao atual indica uma janela de ate 15 minutos. Confirmar plano e comportamento antes de prometer execucao exatamente as 09:00.
-- Endpoint agendado deve ser privado/autenticado e seguro contra chamadas repetidas. O envio propriamente dito pode ser dividido em lotes para respeitar limites de duracao.
+- O agendamento estatico esta declarado em `backend/vercel.json` para `09:00` em `America/Sao_Paulo`, apontando para `POST /api/v1/calendar/birthdays/send`. Configurar o diretorio `backend/` como raiz do projeto Vercel da API.
+- Como o alvo configurado e uma rota HTTP, ela permanece publicamente acessivel e valida `Authorization: Bearer <CRON_SECRET>` em tempo constante; configurar `CRON_SECRET` com pelo menos 16 caracteres. Agendamentos de rota nao recebem retry automatico da Vercel.
+- O horario pode sofrer jitter: o plano Hobby usa uma janela de 15 minutos; Pro/Enterprise permitem de 1 a 15 minutos. Portanto, `09:00` e o horario nominal, nao uma garantia de execucao no minuto exato. Agendamentos estaticos de Preview iniciam inativos.
+- SMTP e credenciais ficam somente nas variaveis de ambiente do backend: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `BIRTHDAY_EMAIL_SUBJECT`, `BIRTHDAY_EMAIL_BODY` e `CRON_SECRET`. Nao migrar a senha contida no arquivo TXT nem enviar e-mails reais sem configuracao e autorizacao.
+- Falhas de envio sao registradas e a rota retorna erro; uma nova execucao pode reprocessar falhas, sem reenviar aniversarios ja registrados como concluidos. O envio propriamente dito pode ser dividido em lotes para respeitar limites de duracao.
 
 ## 7. Configuracoes, arquivos e dados de teste
 

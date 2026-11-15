@@ -13,6 +13,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
     Uuid,
     func,
     text,
@@ -503,6 +504,74 @@ class Expense(Base):
         Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
     )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class CalendarEvent(Base):
+    __tablename__ = "calendar_events"
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('holiday', 'commemorative', 'other')",
+            name="ck_calendar_events_type",
+        ),
+        CheckConstraint(
+            "length(trim(description)) > 0",
+            name="ck_calendar_events_description_not_blank",
+        ),
+        Index("ix_calendar_events_event_date", "event_date"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    event_date: Mapped[date] = mapped_column(Date, nullable=False)
+    description: Mapped[str] = mapped_column(String(500), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    created_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class BirthdayEmailLog(Base):
+    __tablename__ = "birthday_email_logs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'sent', 'failed')",
+            name="ck_birthday_email_logs_status",
+        ),
+        CheckConstraint(
+            "attempt_count > 0",
+            name="ck_birthday_email_logs_attempt_count",
+        ),
+        UniqueConstraint(
+            "customer_id",
+            "birthday_year",
+            name="uq_birthday_email_logs_customer_year",
+        ),
+        Index("ix_birthday_email_logs_year_status", "birthday_year", "status"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    customer_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    birthday_year: Mapped[int] = mapped_column(Integer, nullable=False)
+    scheduled_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    last_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

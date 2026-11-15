@@ -286,6 +286,25 @@ describe('authentication experience', () => {
     )
   })
 
+  it('opens the calendar from the authenticated account', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(currentUser, 200))
+      .mockResolvedValueOnce(jsonResponse({ year: 2027, month: 3, items: [] }, 200))
+    const user = userEvent.setup()
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Olá, Ana.' })
+    await user.click(screen.getByRole('button', { name: 'Abrir calendário' }))
+
+    expect(await screen.findByRole('heading', { name: 'Calendário' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Adicionar evento' })).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringMatching(/\/api\/v1\/calendar\?year=\d{4}&month=\d{1,2}$/),
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
   it('shows the retry delay returned by the API rate limiter', async () => {
     const fetchMock = vi.mocked(fetch)
     fetchMock

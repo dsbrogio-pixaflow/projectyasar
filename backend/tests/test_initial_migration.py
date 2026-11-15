@@ -49,6 +49,8 @@ def test_initial_migration_creates_expected_tables(migrated_database: Path) -> N
             "user_sessions",
             "customers",
             "products",
+            "calendar_events",
+            "birthday_email_logs",
             "alembic_version",
         } <= tables
     finally:
@@ -184,6 +186,8 @@ def test_migration_can_be_downgraded_and_reapplied(migrated_database: Path) -> N
             "user_sessions",
             "customers",
             "products",
+            "calendar_events",
+            "birthday_email_logs",
         } <= set(inspect(engine).get_table_names())
     finally:
         engine.dispose()
