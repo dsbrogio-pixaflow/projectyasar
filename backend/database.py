@@ -22,7 +22,17 @@ def get_database_url(database_url: str | None = None) -> str:
 
 @lru_cache(maxsize=4)
 def _engine_for_url(url: str) -> Engine:
-    return create_engine(url, pool_pre_ping=True, poolclass=NullPool)
+    connect_args = (
+        {"prepare_threshold": None}
+        if url.startswith("postgresql+psycopg://")
+        else {}
+    )
+    return create_engine(
+        url,
+        pool_pre_ping=True,
+        poolclass=NullPool,
+        connect_args=connect_args,
+    )
 
 
 def create_database_engine(database_url: str | None = None) -> Engine:

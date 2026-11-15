@@ -1,6 +1,6 @@
 # Especificacao de arquitetura e migracao
 
-**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas, financeiro, painel e calendario foram integrados. A administracao de usuarios esta em implementacao.
+**Status:** arquitetura aprovada e em implementacao incremental; autenticacao, clientes, produtos, estoque, vendas, acompanhamento de entregas, financeiro, painel, calendario e administracao de usuarios foram integrados. A preparacao de staging na Vercel esta em andamento; nao ha deploy ou migracao remota concluida.
 **Sistema legado analisado:** SY-Final, aplicacao Java Swing com persistencia em arquivos TXT.  
 **Escopo de dados:** os registros dos arquivos TXT sao dados de teste e nao serao importados. As configuracoes visuais e de e-mail serao tratadas separadamente; credenciais nao serao copiadas para o codigo, banco ou GitHub.
 
@@ -15,7 +15,7 @@ repositorio/
   docs/       especificacoes e decisoes
 ```
 
-O PostgreSQL sera gerenciado pelo Supabase. O unico projeto mantido e `projectyasar`, em East US / North Virginia (`us-east-1`), escolhido pela opcao geral Americas exibida no painel; a criacao de um segundo projeto foi cancelada e nenhum schema ou dado foi criado. Embora a documentacao liste Sao Paulo (`sa-east-1`) como regiao especifica, essa opcao nao apareceu no fluxo de criacao observado. Se o banco permanecer em Virginia, `iad1` e a candidata para a API Vercel, reduzindo latencia entre API e banco; considerar a latencia para usuarios no Brasil. Usuarios principais estao no Brasil. O plano atual do Supabase nao oferece backups gerenciados: o desenvolvimento pode prosseguir com dados ficticios, mas dados reais nao devem ser usados em producao antes de definir, automatizar e testar uma estrategia de backup/restauracao externa ou mudar de plano. A autenticacao sera propria do FastAPI; o Supabase sera usado como banco PostgreSQL, nao como provedor de identidade. As migracoes serao versionadas com Alembic. O frontend chamara a API HTTPS; a API usara uma lista explicita de origens CORS autorizadas. Variaveis de ambiente e credenciais SMTP existirao somente no ambiente do backend.
+O PostgreSQL sera gerenciado pelo Supabase. O unico projeto mantido e `projectyasar`, em East US / North Virginia (`us-east-1`), escolhido pela opcao geral Americas exibida no painel; a criacao de um segundo projeto foi cancelada e nenhum schema ou dado foi criado. Embora a documentacao liste Sao Paulo (`sa-east-1`) como regiao especifica, essa opcao nao apareceu no fluxo de criacao observado. A API Vercel usa `iad1`, proxima ao banco em Virginia, considerando tambem a latencia para usuarios no Brasil. Para as funcoes serverless, a API usa o transaction pooler do Supabase e desativa prepared statements do Psycopg; migracoes Alembic usam uma conexao direta separada. O plano atual do Supabase nao oferece backups gerenciados: o desenvolvimento pode prosseguir com dados ficticios, mas dados reais nao devem ser usados em producao antes de definir, automatizar e testar uma estrategia de backup/restauracao externa ou mudar de plano. A autenticacao sera propria do FastAPI; o Supabase sera usado como banco PostgreSQL, nao como provedor de identidade. As migracoes serao versionadas com Alembic. O frontend encaminha `/api/v1/*` ao backend por uma rewrite same-origin da Vercel, preservando os cookies `SameSite=Lax` entre os dominios Vercel padrao. Variaveis de ambiente e credenciais SMTP existirao somente no ambiente do backend.
 
 Vercel Functions suporta aplicacoes ASGI como FastAPI. O banco, o armazenamento persistente de imagens e o envio de e-mail continuam sendo servicos separados. A API deve usar conexoes PostgreSQL compatíveis com o modelo serverless e a regiao do banco deve ser escolhida considerando a regiao das funcoes.
 
@@ -87,7 +87,7 @@ Os nomes abaixo sao conceituais; a convencao final de nomes e tipos sera aplicad
 - A conta inicial de administrador e provisionada uma unica vez pelo comando operacional `backend/bootstrap_admin.py`, usando `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD` no ambiente. A senha nao e incorporada ao repositorio e os segredos temporarios devem ser removidos apos o bootstrap.
 - Sessoes web usam cookies `HttpOnly` e `SameSite=Lax`, com `Secure` em producao, expiracao e revogacao no servidor.
 - O cadastro limita 5 tentativas por IP por hora; o login limita 10 por e-mail e 20 por IP em 15 minutos. Contadores atomicos sao persistidos em `auth_rate_limits`, removidos apos expiracao e respondem com `429`/`Retry-After`. IPs e e-mails sao armazenados apenas como HMAC-SHA256 com chave de ambiente `RATE_LIMIT_HMAC_KEY` (minimo de 32 bytes). Em Vercel, usa-se o cabecalho `X-Forwarded-For` sobrescrito pela plataforma; localmente, o IP do cliente ASGI.
-- O FastAPI aceita origens CORS explicitas por `CORS_ORIGINS`, exige origens HTTPS em producao/Vercel e falha ao iniciar se a lista estiver ausente; localmente permite somente as origens padrao do Vite. Os dominios de producao ainda devem ser definidos e configurados nos projetos Vercel quando forem criados. A sessao usa `SameSite=Lax`: frontend e API devem pertencer ao mesmo site; dominios Vercel padrao independentes podem ser cross-site. Se os dominios escolhidos forem cross-site, definir uma estrategia segura de cookie e CSRF antes do deploy. CORS permite credenciais e nao substitui protecao CSRF. A chave HMAC deve ser estavel e igual em todas as instancias; sua rotacao invalida os buckets atuais.
+- O FastAPI aceita origens CORS explicitas por `CORS_ORIGINS`, exige origens HTTPS em producao/Vercel e falha ao iniciar se a lista estiver ausente; localmente permite somente as origens padrao do Vite. Em producao, a API e acessada por rewrite same-origin no dominio do frontend; configure esse dominio em `CORS_ORIGINS`. CORS permite credenciais e nao substitui protecao CSRF. A chave HMAC deve ser estavel e igual em todas as instancias; sua rotacao invalida os buckets atuais.
 
 ### Matriz de acesso
 
@@ -166,7 +166,7 @@ Antes de considerar o desenho pronto para implementacao, os criterios sao:
 7. Uma venda pode conter varios itens; historico preserva precos aplicados.
 8. Reexecucao do agendamento nao duplica felicitações concluidas; regra de 29/02 e testada.
 9. Fluxos principais sao utilizaveis em resolucoes desktop e mobile.
-10. Frontend e API implantam como projetos Vercel separados a partir do mesmo repositorio, conectando a um PostgreSQL gerenciado.
+10. Frontend e API implantam como projetos Vercel separados a partir do mesmo repositorio, com chamadas same-origin e conexao a um PostgreSQL gerenciado e isolado.
 
 ## 9. Etapas seguintes
 
