@@ -887,6 +887,127 @@
   flex-wrap: wrap;
 }
 
+.dashboard-stock-total {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.dashboard-stock-total > span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dashboard-stock-total > strong {
+  color: var(--ink);
+  font-size: 24px;
+}
+
+.dashboard-stock-total.is-negative > strong,
+.dashboard-stock-total.is-negative > span:last-child {
+  color: #a14850;
+}
+
+.dashboard-stock-total > span:last-child {
+  margin-left: auto;
+  font-size: 11px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-chart {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.dashboard-chart h3 {
+  margin: 0 0 14px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.dashboard-month-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-month-item {
+  display: grid;
+  gap: 5px;
+}
+
+.dashboard-month-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: capitalize;
+}
+
+.dashboard-series {
+  display: grid;
+  grid-template-columns: 58px minmax(30px, 1fr) minmax(54px, auto);
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.dashboard-series strong {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 650;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-bar-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f0eff5;
+}
+
+.dashboard-bar {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+}
+
+.dashboard-bar.is-entry {
+  background: #4caf74;
+}
+
+.dashboard-bar.is-exit {
+  background: #d7666e;
+}
+
+.dashboard-bar.is-sales {
+  background: #6b69cf;
+}
+
+.dashboard-bar.is-expense {
+  background: #d69a36;
+}
+
 .customer-field input:focus,
 .customer-field textarea:focus,
 .customer-field select:focus,
@@ -1162,6 +1283,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .sales-line {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1243,6 +1368,16 @@
   .finance-status-filter {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .dashboard-stock-total {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .dashboard-stock-total > span:last-child {
+    margin-left: 0;
   }
 
   .sales-delivery-create > div {

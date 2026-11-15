@@ -264,6 +264,28 @@ describe('authentication experience', () => {
     )
   })
 
+  it('opens the business dashboard from the authenticated account', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(currentUser, 200))
+      .mockResolvedValueOnce(jsonResponse({
+        current_stock_balance: 0,
+        months: [],
+      }, 200))
+    const user = userEvent.setup()
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Olá, Ana.' })
+    await user.click(screen.getByRole('button', { name: 'Ver painel' }))
+
+    expect(await screen.findByRole('heading', { name: 'Painel' })).toBeInTheDocument()
+    expect(await screen.findByText('Saldo atual total do estoque ativo')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'http://127.0.0.1:8000/api/v1/dashboard',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
   it('shows the retry delay returned by the API rate limiter', async () => {
     const fetchMock = vi.mocked(fetch)
     fetchMock
