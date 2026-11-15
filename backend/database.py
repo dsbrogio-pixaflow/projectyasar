@@ -1,22 +1,33 @@
 import os
 from collections.abc import Iterator
 from functools import lru_cache
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session as SQLAlchemySession
 from sqlalchemy.pool import NullPool
 
+load_dotenv(Path(__file__).resolve().with_name(".env"), override=False)
+
 
 def get_database_url(database_url: str | None = None) -> str:
     url = database_url or os.environ.get("DATABASE_URL")
+
     if not url:
-        raise RuntimeError("DATABASE_URL must be set before connecting to the database")
+        raise RuntimeError(
+            "DATABASE_URL must be set before connecting to the database"
+        )
+
+    url = url.strip()
 
     if url.startswith("postgres://"):
-        return "postgresql+psycopg://" + url.removeprefix("postgres://")
-    if url.startswith("postgresql://"):
-        return "postgresql+psycopg://" + url.removeprefix("postgresql://")
+        url = url.replace("postgres://", "postgresql+psycopg://", 1)
+
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+
     return url
 
 
