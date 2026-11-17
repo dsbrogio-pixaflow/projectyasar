@@ -221,13 +221,19 @@ function App() {
                   {activeModule === 'dashboard' ? 'Voltar ao resumo' : 'Ver painel'}
                 </button>
                 <button
-                  className="secondary-button"
+                  className={activeModule === 'customers' ? 'primary-button' : 'secondary-button'}
                   type="button"
-                  onClick={() => setActiveModule((module) => (
-                    module === 'customers' ? null : 'customers'
-                  ))}
+                  onClick={() => {
+                    const next = activeModule === 'customers' ? null : 'customers'
+                    setActiveModule(next)
+                    if (next) {
+                      setTimeout(() => {
+                        document.getElementById('customers-manager-section')?.scrollIntoView({ behavior: 'smooth' })
+                      }, 100)
+                    }
+                  }}
                 >
-                  {activeModule === 'customers' ? 'Voltar ao resumo' : 'Gerenciar clientes'}
+                  {activeModule === 'customers' ? 'Fechar clientes' : 'Gerenciar clientes'}
                 </button>
                 <button
                   className="secondary-button"

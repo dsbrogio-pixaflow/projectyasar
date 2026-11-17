@@ -105,7 +105,7 @@ export default function CustomersPage() {
   const [form, setForm] = useState<CustomerForm>(EMPTY_FORM)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
-  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isFormOpen, setIsFormOpen] = useState(true)
   const [loadedQueryKey, setLoadedQueryKey] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -242,7 +242,7 @@ export default function CustomersPage() {
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
 
   return (
-    <section className="customer-manager" aria-labelledby="customers-heading">
+    <section id="customers-manager-section" className="customer-manager" aria-labelledby="customers-heading">
       <div className="customer-header">
         <div>
           <span className="eyebrow">GESTÃO DO NEGÓCIO</span>
@@ -251,23 +251,13 @@ export default function CustomersPage() {
           <p>Consulte e mantenha os dados de contato dos seus clientes.</p>
         </div>
         <div className="customer-header-actions">
-          {!isFormOpen ? (
-            <button
-              className="customer-primary-button"
-              type="button"
-              onClick={openNewForm}
-            >
-              Adicionar cliente
-            </button>
-          ) : (
-            <button
-              className="customer-secondary-button"
-              type="button"
-              onClick={resetForm}
-            >
-              Fechar formulário
-            </button>
-          )}
+          <button
+            className="customer-primary-button"
+            type="button"
+            onClick={openNewForm}
+          >
+            Adicionar cliente
+          </button>
         </div>
       </div>
 
