@@ -236,13 +236,19 @@ function App() {
                   {activeModule === 'customers' ? 'Fechar clientes' : 'Gerenciar clientes'}
                 </button>
                 <button
-                  className="secondary-button"
+                  className={activeModule === 'products' ? 'primary-button' : 'secondary-button'}
                   type="button"
-                  onClick={() => setActiveModule((module) => (
-                    module === 'products' ? null : 'products'
-                  ))}
+                  onClick={() => {
+                    const next = activeModule === 'products' ? null : 'products'
+                    setActiveModule(next)
+                    if (next) {
+                      setTimeout(() => {
+                        document.getElementById('products-manager-section')?.scrollIntoView({ behavior: 'smooth' })
+                      }, 100)
+                    }
+                  }}
                 >
-                  {activeModule === 'products' ? 'Voltar ao resumo' : 'Gerenciar produtos'}
+                  {activeModule === 'products' ? 'Fechar produtos' : 'Gerenciar produtos'}
                 </button>
                 <button
                   className="secondary-button"

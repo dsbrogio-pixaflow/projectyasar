@@ -612,8 +612,136 @@
   border-color: #f7c5c2;
 }
 
-.btn-delete:hover:not(:disabled) {
-  background: #fad2cf;
+.product-price-blue {
+  color: #0066cc;
+  font-weight: 750;
+  font-size: 13px;
+}
+
+.product-image-thumbnail-styled {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #d4d3e0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: block;
+  transition: transform 0.15s ease;
+}
+
+.product-thumbnail-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.product-thumbnail-btn:hover .product-image-thumbnail-styled {
+  transform: scale(1.08);
+}
+
+.product-image-placeholder-styled {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  background: #f1f0f7;
+  color: #9290a4;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px dashed #d0cedf;
+}
+
+.product-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 18, 38, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.product-modal-content {
+  background: white;
+  border-radius: 14px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.product-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #ebebf3;
+}
+
+.product-modal-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.product-modal-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.product-modal-close:hover {
+  background: #f1f0f7;
+  color: var(--ink);
+}
+
+.product-modal-body {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fbfbfd;
+}
+
+.product-modal-img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.btn-preview-img {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #c8e6c9;
+}
+
+.btn-preview-img:hover {
+  background: #c8e6c9;
 }
 
 .customer-filter-toolbar {

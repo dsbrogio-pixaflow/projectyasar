@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ApiError } from './services/auth'
 import {
@@ -64,7 +64,7 @@ function toProductInput(form: ProductForm): ProductInput {
 function formFromProduct(product: Product): ProductForm {
   return {
     name: product.name,
-    current_price: Number(product.current_price).toFixed(2),
+    current_price: Number(product.current_price).toFixed(2).replace('.', ','),
     image_url: product.image_url ?? '',
   }
 }
@@ -82,12 +82,16 @@ export default function ProductsPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(true)
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
   const [loadedQueryKey, setLoadedQueryKey] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
+
+  const nameInputRef = useRef<HTMLInputElement>(null)
   const queryKey = JSON.stringify([search, includeArchived, page, refreshKey])
   const isLoading = loadedQueryKey !== queryKey
 
@@ -122,16 +126,30 @@ export default function ProductsPage() {
 
   function resetForm() {
     setEditingProduct(null)
+    setSelectedProductId(null)
     setForm(EMPTY_FORM)
-    setIsFormOpen(false)
+    setError(null)
+    nameInputRef.current?.focus()
+  }
+
+  function openNewForm() {
+    setEditingProduct(null)
+    setSelectedProductId(null)
+    setForm(EMPTY_FORM)
+    setIsFormOpen(true)
+    setError(null)
+    setNotice(null)
+    setTimeout(() => nameInputRef.current?.focus(), 50)
   }
 
   function beginEdit(product: Product) {
     setEditingProduct(product)
+    setSelectedProductId(product.id)
     setForm(formFromProduct(product))
     setIsFormOpen(true)
     setError(null)
     setNotice(null)
+    setTimeout(() => nameInputRef.current?.focus(), 50)
   }
 
   function changeField(field: keyof ProductForm, value: string) {
@@ -155,10 +173,10 @@ export default function ProductsPage() {
     try {
       if (editingProduct) {
         await updateProduct(editingProduct.id, input)
-        setNotice('Produto atualizado.')
+        setNotice(`Produto "${input.name}" atualizado com sucesso!`)
       } else {
         await createProduct(input)
-        setNotice('Produto cadastrado.')
+        setNotice(`Produto "${input.name}" cadastrado com sucesso!`)
       }
       resetForm()
       setRefreshKey((key) => key + 1)
@@ -170,12 +188,22 @@ export default function ProductsPage() {
   }
 
   async function handleArchive(product: Product) {
-    if (!window.confirm(`Arquivar o produto ${product.name}?`)) return
+    if (
+      !window.confirm(
+        `Tem certeza que deseja remover o produto "${product.name}"?\n` +
+        'O histórico de vendas e movimentações permanecerá seguro e registrado.',
+      )
+    ) {
+      return
+    }
     setError(null)
     setNotice(null)
     try {
       await archiveProduct(product.id)
       setNotice('Produto arquivado. Você pode restaurá-lo a qualquer momento.')
+      if (editingProduct?.id === product.id) {
+        resetForm()
+      }
       setRefreshKey((key) => key + 1)
     } catch (requestError: unknown) {
       setError(getErrorMessage(requestError))
@@ -194,53 +222,54 @@ export default function ProductsPage() {
     }
   }
 
+  const selectedProduct = products.find((p) => p.id === selectedProductId)
+
   return (
-    <section className="customer-manager product-manager" aria-labelledby="products-heading">
+    <section id="products-manager-section" className="customer-manager product-manager" aria-labelledby="products-heading">
       <div className="customer-header">
         <div>
           <span className="eyebrow">GESTÃO DO NEGÓCIO</span>
           <h2 id="products-heading">Produtos</h2>
-          <p>Organize o catálogo e os preços atuais dos seus produtos.</p>
+          <span className="customer-subheading">Itens da Loja</span>
+          <p>Cadastre, altere preços e visualize os produtos e itens disponíveis na loja.</p>
         </div>
-        {!isFormOpen && (
+        <div className="customer-header-actions">
           <button
             className="customer-primary-button"
             type="button"
-            onClick={() => {
-              setEditingProduct(null)
-              setForm(EMPTY_FORM)
-              setIsFormOpen(true)
-              setError(null)
-              setNotice(null)
-            }}
+            onClick={openNewForm}
           >
             Adicionar produto
           </button>
-        )}
+        </div>
       </div>
 
       {error && <p className="customer-message customer-error" role="alert">{error}</p>}
       {notice && <p className="customer-message customer-success" role="status">{notice}</p>}
 
       {isFormOpen && (
-        <form className="customer-form" onSubmit={handleSubmit}>
-          <div className="customer-form-heading">
-            <h3>{editingProduct ? 'Editar produto' : 'Novo produto'}</h3>
-            <span>* Campo obrigatório</span>
+        <form className="customer-java-panel" onSubmit={handleSubmit}>
+          <div className="customer-panel-title">
+            <span>{editingProduct ? '✏️ Editar Produto' : '➕ Novo Produto da Loja'}</span>
+            <span className="customer-hint-inline">* Campo obrigatório</span>
           </div>
-          <div className="customer-form-grid">
-            <div className="customer-field customer-field-wide">
+
+          <div className="customer-fields-row">
+            <div className="customer-field-item field-nome" style={{ flex: '2 1 220px' }}>
               <label htmlFor="product-name">Nome *</label>
               <input
+                ref={nameInputRef}
                 id="product-name"
                 value={form.name}
                 onChange={(event) => changeField('name', event.target.value)}
                 maxLength={200}
+                placeholder="Ex: Coleira, Bandana, Ração..."
                 required
                 disabled={isSaving}
               />
             </div>
-            <div className="customer-field">
+
+            <div className="customer-field-item field-preco" style={{ flex: '1 1 140px', maxWidth: '180px' }}>
               <label htmlFor="product-price">Preço atual (R$) *</label>
               <input
                 id="product-price"
@@ -251,51 +280,59 @@ export default function ProductsPage() {
                 required
                 disabled={isSaving}
               />
-              <span className="customer-hint">Use vírgula ou ponto; até 2 casas decimais.</span>
             </div>
-            <div className="customer-field customer-field-wide">
+
+            <div className="customer-field-item field-imagem" style={{ flex: '3 1 260px' }}>
               <label htmlFor="product-image-url">URL da imagem</label>
               <input
                 id="product-image-url"
                 type="url"
                 value={form.image_url}
                 onChange={(event) => changeField('image_url', event.target.value)}
-                maxLength={2000}
-                placeholder="https://..."
+                placeholder="https://... ou caminho da imagem"
                 disabled={isSaving}
               />
-              <span className="customer-hint">
-                Use uma URL pública. A imagem não é enviada nem armazenada pela aplicação.
-              </span>
             </div>
           </div>
-          <div className="customer-form-actions">
-            <button
-              className="customer-secondary-button"
-              type="button"
-              onClick={resetForm}
-              disabled={isSaving}
-            >
-              Cancelar
-            </button>
-            <button
-              className="customer-primary-button"
-              type="submit"
-              disabled={isSaving}
-            >
-              {isSaving
-                ? 'Salvando…'
-                : editingProduct
-                  ? 'Salvar alterações'
-                  : 'Cadastrar'}
-            </button>
+
+          <div className="customer-actions-toolbar">
+            <div className="customer-toolbar-buttons">
+              <button
+                className="customer-btn-action btn-add"
+                type="submit"
+                disabled={isSaving}
+              >
+                {isSaving ? 'Salvando…' : editingProduct ? 'Salvar alterações' : 'Cadastrar'}
+              </button>
+
+              {editingProduct && (
+                <button
+                  className="customer-btn-action btn-cancel"
+                  type="button"
+                  onClick={resetForm}
+                  disabled={isSaving}
+                >
+                  Cancelar Edição
+                </button>
+              )}
+
+              {selectedProduct && selectedProduct.image_url && (
+                <button
+                  className="customer-btn-action btn-preview-img"
+                  type="button"
+                  onClick={() => setPreviewImage({ url: selectedProduct.image_url!, name: selectedProduct.name })}
+                >
+                  👁️ Visualizar Imagem
+                </button>
+              )}
+            </div>
           </div>
         </form>
       )}
 
-      <div className="customer-tools">
+      <div className="customer-filter-toolbar">
         <form
-          className="customer-search"
+          className="customer-search-inline"
           role="search"
           onSubmit={(event) => {
             event.preventDefault()
@@ -308,133 +345,232 @@ export default function ProductsPage() {
           <input
             id="product-search"
             value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
+            onChange={(event) => {
+              const val = event.target.value
+              setSearchInput(val)
+              if (val === '') {
+                setSearch('')
+                setPage(0)
+              }
+            }}
             placeholder="Nome do produto"
           />
-          <button className="customer-secondary-button" type="submit">Buscar</button>
+          <button className="customer-btn-filter" type="submit">Buscar</button>
         </form>
-        <label className="archived-toggle">
-          <input
-            type="checkbox"
-            checked={includeArchived}
-            onChange={(event) => {
-              setError(null)
-              setPage(0)
-              setIncludeArchived(event.target.checked)
-            }}
-          />
-          Incluir arquivados
-        </label>
+
+        <div className="customer-toolbar-right">
+          {selectedProduct && !selectedProduct.archived_at && (
+            <div className="customer-selected-actions">
+              <span>Selecionado: <strong>{selectedProduct.name}</strong></span>
+              <button
+                type="button"
+                className="customer-btn-action btn-edit"
+                onClick={() => beginEdit(selectedProduct)}
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                className="customer-btn-action btn-delete"
+                onClick={() => void handleArchive(selectedProduct)}
+              >
+                Remover
+              </button>
+            </div>
+          )}
+
+          <label className="archived-toggle-inline">
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(event) => {
+                setError(null)
+                setPage(0)
+                setIncludeArchived(event.target.checked)
+              }}
+            />
+            Incluir arquivados
+          </label>
+        </div>
       </div>
 
-      <div className="customer-list-heading">
-        <h3>Lista de produtos</h3>
-        <span>{total} {total === 1 ? 'produto' : 'produtos'}</span>
-        {total > PRODUCT_PAGE_SIZE && (
-          <nav className="customer-pagination" aria-label="Paginação de produtos">
-            <button
-              type="button"
-              className="customer-secondary-button"
-              onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
-              disabled={page === 0 || isLoading}
-            >
-              Anterior
-            </button>
-            <span aria-live="polite">
-              Página {page + 1} de {Math.ceil(total / PRODUCT_PAGE_SIZE)}
-            </span>
-            <button
-              type="button"
-              className="customer-secondary-button"
-              onClick={() => setPage((currentPage) => currentPage + 1)}
-              disabled={(page + 1) * PRODUCT_PAGE_SIZE >= total || isLoading}
-            >
-              Próxima
-            </button>
-          </nav>
+      <div className="customer-table-section">
+        <div className="customer-table-header-info">
+          <div className="customer-table-stats">
+            <strong>Lista de Produtos</strong>
+            <span>({total} {total === 1 ? 'produto' : 'produtos'})</span>
+            <span className="customer-table-tip">💡 Duplo clique para editar ou clique na miniatura para ampliar</span>
+          </div>
+
+          {total > PRODUCT_PAGE_SIZE && (
+            <nav className="customer-pagination" aria-label="Paginação de produtos">
+              <button
+                type="button"
+                className="customer-secondary-button"
+                onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
+                disabled={page === 0 || isLoading}
+              >
+                Anterior
+              </button>
+              <span aria-live="polite">
+                Página {page + 1} de {Math.ceil(total / PRODUCT_PAGE_SIZE)}
+              </span>
+              <button
+                type="button"
+                className="customer-secondary-button"
+                onClick={() => setPage((currentPage) => currentPage + 1)}
+                disabled={(page + 1) * PRODUCT_PAGE_SIZE >= total || isLoading}
+              >
+                Próxima
+              </button>
+            </nav>
+          )}
+        </div>
+
+        {isLoading ? (
+          <p className="customer-empty" role="status">Carregando produtos…</p>
+        ) : products.length === 0 ? (
+          <p className="customer-empty">
+            {search
+              ? 'Nenhum produto corresponde à busca.'
+              : 'Nenhum produto cadastrado ainda.'}
+          </p>
+        ) : (
+          <div className="customer-table-wrap">
+            <table className="customer-table customer-table-centered product-table-styled">
+              <thead>
+                <tr>
+                  <th scope="col" style={{ width: '55px' }}>ID</th>
+                  <th scope="col" style={{ width: '80px' }}>Thumbnail</th>
+                  <th scope="col">Nome</th>
+                  <th scope="col" style={{ width: '140px' }}>Preço</th>
+                  <th scope="col" style={{ width: '85px' }}>Status</th>
+                  <th scope="col" style={{ width: '140px' }}><span className="visually-hidden">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((product, index) => {
+                  const isSelected = selectedProductId === product.id
+                  const isEditingThis = editingProduct?.id === product.id
+
+                  return (
+                    <tr
+                      key={product.id}
+                      className={`${isSelected ? 'is-selected-row' : ''} ${isEditingThis ? 'is-editing-row' : ''}`}
+                      onClick={() => setSelectedProductId(product.id)}
+                      onDoubleClick={() => beginEdit(product)}
+                      title="Clique para selecionar ou duplo clique para editar"
+                    >
+                      <td data-label="ID" className="cell-center text-muted">
+                        {page * PRODUCT_PAGE_SIZE + index + 1}
+                      </td>
+                      <td data-label="Thumbnail" className="cell-center">
+                        {product.image_url ? (
+                          <button
+                            type="button"
+                            className="product-thumbnail-btn"
+                            title="Clique para ampliar a imagem"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setPreviewImage({ url: product.image_url!, name: product.name })
+                            }}
+                          >
+                            <img
+                              className="product-image-thumbnail-styled"
+                              src={product.image_url}
+                              alt={product.name}
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          </button>
+                        ) : (
+                          <span className="product-image-placeholder-styled" aria-label="Sem imagem">
+                            Sem foto
+                          </span>
+                        )}
+                      </td>
+                      <td data-label="Produto" className="cell-left">
+                        <strong className="product-name-highlight">{product.name}</strong>
+                      </td>
+                      <td data-label="Preço" className="cell-center">
+                        <span className="product-price-blue">{formatPrice(product.current_price)}</span>
+                      </td>
+                      <td data-label="Status" className="cell-center">
+                        <span className={`customer-status ${product.archived_at ? 'is-archived' : 'is-active'}`}>
+                          {product.archived_at ? 'Arquivado' : 'Ativo'}
+                        </span>
+                      </td>
+                      <td className="customer-actions cell-center">
+                        {product.archived_at ? (
+                          <button
+                            type="button"
+                            className="customer-link-button"
+                            aria-label={`Restaurar ${product.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void handleRestore(product)
+                            }}
+                          >
+                            Restaurar
+                          </button>
+                        ) : (
+                          <div className="customer-row-btns">
+                            <button
+                              type="button"
+                              className="customer-link-button"
+                              aria-label={`Editar ${product.name}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                beginEdit(product)
+                              }}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              className="customer-link-button customer-danger-button"
+                              aria-label={`Arquivar ${product.name}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                void handleArchive(product)
+                              }}
+                            >
+                              Arquivar
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
-      {isLoading ? (
-        <p className="customer-empty" role="status">Carregando produtos…</p>
-      ) : products.length === 0 ? (
-        <p className="customer-empty">
-          {search
-            ? 'Nenhum produto corresponde à busca.'
-            : 'Nenhum produto cadastrado ainda.'}
-        </p>
-      ) : (
-        <div className="customer-table-wrap">
-          <table className="customer-table">
-            <thead>
-              <tr>
-                <th scope="col">Imagem</th>
-                <th scope="col">Produto</th>
-                <th scope="col">Preço</th>
-                <th scope="col">Status</th>
-                <th scope="col"><span className="visually-hidden">Ações</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id}>
-                  <td data-label="Imagem">
-                    {product.image_url ? (
-                      <img
-                        className="product-image-thumbnail"
-                        src={product.image_url}
-                        alt=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <span className="product-image-placeholder" aria-label="Sem imagem">
-                        —
-                      </span>
-                    )}
-                  </td>
-                  <td data-label="Produto"><strong>{product.name}</strong></td>
-                  <td data-label="Preço">{formatPrice(product.current_price)}</td>
-                  <td data-label="Status">
-                    <span className={`customer-status ${product.archived_at ? 'is-archived' : ''}`}>
-                      {product.archived_at ? 'Arquivado' : 'Ativo'}
-                    </span>
-                  </td>
-                  <td className="customer-actions">
-                    {product.archived_at ? (
-                      <button
-                        type="button"
-                        className="customer-link-button"
-                        aria-label={`Restaurar ${product.name}`}
-                        onClick={() => void handleRestore(product)}
-                      >
-                        Restaurar
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="customer-link-button"
-                          aria-label={`Editar ${product.name}`}
-                          onClick={() => beginEdit(product)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="customer-link-button customer-danger-button"
-                          aria-label={`Arquivar ${product.name}`}
-                          onClick={() => void handleArchive(product)}
-                        >
-                          Arquivar
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {previewImage && (
+        <div className="product-modal-backdrop" onClick={() => setPreviewImage(null)}>
+          <div className="product-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="product-modal-header">
+              <h3>Preview da Imagem: {previewImage.name}</h3>
+              <button
+                type="button"
+                className="product-modal-close"
+                onClick={() => setPreviewImage(null)}
+                aria-label="Fechar preview"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="product-modal-body">
+              <img
+                src={previewImage.url}
+                alt={previewImage.name}
+                className="product-modal-img"
+              />
+            </div>
+          </div>
         </div>
       )}
     </section>
